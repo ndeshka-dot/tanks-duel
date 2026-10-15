@@ -309,6 +309,12 @@ function updDrops(now,dt){
 let buffHtml='';
 function updBuffs(now){let h='';for(const k of['speed','defense','damage']){const r=me.buffs[k]-now;if(r>0)h+=`<span style="margin:0 6px;background:#0008;border-radius:8px;padding:2px 8px;color:#${BCOL[k].toString(16).padStart(6,'0')}"><img src="bonus/${k}_zone.png" width="22" style="vertical-align:middle"> ${Math.ceil(r/1000)}</span>`}
  if(h!==buffHtml){buffHtml=h;$('buffs').innerHTML=h}}
+const IK=['speed','defense','damage'];
+function updIcons(t,now){const m=t.mesh;if(!m.icons){m.icons={};IK.forEach(k=>{const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:BT[k].zone,transparent:true,depthTest:false,depthWrite:false}));sp.scale.set(.95,.95,1);sp.renderOrder=11;sp.visible=false;m.add(sp);m.icons[k]=sp})}
+ const act=IK.filter(k=>t.buffs[k]>now&&t.hp>0),sp=1.05;
+ IK.forEach(k=>{const ic=m.icons[k];const i=act.indexOf(k);ic.visible=i>=0;if(i<0)return;const r=t.buffs[k]-now;
+  ic.position.set((i-(act.length-1)/2)*sp,3.4+.08*Math.sin(now/300+i),0);
+  ic.material.opacity=r<2000?(Math.sin(now/70)>0?1:.25):1})}
 function updAura(t,now){const a=t.mesh.aura;if(!a)return;let r=0,g=0,b=0,n=0;for(const k in BCOL){if(t.buffs[k]>now){const c=new THREE.Color(BCOL[k]);r+=c.r;g+=c.g;b+=c.b;n++}}
  a.visible=n>0&&t.hp>0;if(n){a.material.color.setRGB(r/n,g/n,b/n);a.material.opacity=.45+.25*Math.sin(now/180)}}
 function nearestDrop(o){let best=null,bd=1e9;for(const d of drops){const z=ZONES[d.zone],dd=Math.hypot(z.x-o.x,z.z-o.z);if(dd<bd&&(now0()-d.t0)>1300){bd=dd;best={x:z.x,z:z.z,d:dd}}}return best}
@@ -333,7 +339,7 @@ function loop(now){requestAnimationFrame(loop);const dt=Math.min(.05,(now-prev)/
   if(!opp.isBot)updHud();
  }
  if(me){for(const t of[me,opp]){const rc=recoil(t,performance.now());t.mesh.position.set(t.x-(t===opp&&!opp.isBot?Math.sin(t.ta)*.12*rc:0),0,t.z-(t===opp&&!opp.isBot?Math.cos(t.ta)*.12*rc:0));if(t.mesh.rec)t.mesh.rec.position.z=-.25*rc;t.mesh.rotation.y=t.a;t.mesh.tur.rotation.y=t.ta-t.a;t.mesh.visible=t.hp>0}
-  for(const t of[me,opp]){updGlow(t,now);updAura(t,now)}updDrops(now,dt);updBuffs(now);
+  for(const t of[me,opp]){updGlow(t,now);updAura(t,now);updIcons(t,now)}updDrops(now,dt);updBuffs(now);
   const cp=Math.cos(camPitch),sp=Math.sin(camPitch),D=9,sx=Math.sin(me.ta),sz=Math.cos(me.ta);
   cam.position.set(Math.max(-A-4,Math.min(A+4,me.x-sx*cp*D)),1.2+sp*D,Math.max(-A-4,Math.min(A+4,me.z-sz*cp*D)));{const sk=performance.now()-shakeT;if(sk<300){const a=.14*(1-sk/300)**2;cam.position.x+=(Math.random()-.5)*a;cam.position.y+=(Math.random()-.5)*a;cam.position.z+=(Math.random()-.5)*a}}cam.lookAt(me.x+sx*5,1.2,me.z+sz*5);}
  else{cam.position.set(0,25,-35);cam.lookAt(0,0,0)}
