@@ -144,7 +144,7 @@ function makeModelTank(type,paint){const src=MODELS[type],ts=MODELS.tur;if(!src|
  applyPaint(root,type,paint);root.scale.setScalar(sc);root.position.y=yoff;g.add(root);
  const tur=new THREE.Group();tur.position.set(mp.x*sc,yoff+mp.y*sc,mp.z*sc);g.add(tur);
  const t=ts.clone(true),mz=t.getObjectByName('muzzle'),mzp=mz?mz.position.z:4.13;t.traverse(o=>{if(o.isMesh)o.material=o.material.clone()});applyPaint(t,'turret',paint);const tb=new THREE.Box3().setFromObject(t);t.scale.setScalar(sc);tur.add(t);
- g.muz={px:tur.position.x,pz:tur.position.z,tip:tb.max.z*sc,y:tur.position.y+(mz?mz.position.y:.45)*sc};g.tur=tur;g.hull=root;scene.add(g);return g}
+ g.muz={px:tur.position.x,pz:tur.position.z,tip:tb.max.z*sc,y:tur.position.y+(mz?mz.position.y:.45)*sc};g.rec=t;g.tur=tur;g.hull=root;scene.add(g);return g}
 let glowTex=null;
 function addGlow(g){if(!glowTex){const c=document.createElement('canvas');c.width=c.height=64;const x=c.getContext('2d'),gr=x.createRadialGradient(32,32,0,32,32,32);gr.addColorStop(0,'rgba(255,255,255,1)');gr.addColorStop(.3,'rgba(160,240,255,.7)');gr.addColorStop(1,'rgba(0,150,255,0)');x.fillStyle=gr;x.fillRect(0,0,64,64);glowTex=new THREE.CanvasTexture(c)}
  if(!g.muz)g.muz={px:0,pz:0,tip:2.8,y:1.15};
@@ -188,10 +188,12 @@ function beam(ox,oz,dx,dz,len,col,oy=1.5){const g=new THREE.CylinderGeometry(.08
  const m=new THREE.Mesh(g,new THREE.MeshBasicMaterial({color:col,transparent:true,opacity:.9}));m.position.set(ox,oy,oz);m.lookAt(ox+dx,oy,oz+dz);scene.add(m);beams.push({m,t:0});}
 function wallDist(ox,oz,dx,dz){let best=RANGE;for(const b of boxes){const t=rayBox(ox,oz,dx,dz,b);if(t!==null&&t<best)best=t}return best}
 // shooter fires: returns hit?
+let shakeT=0;
+function recoil(t,now){const f=(now-t.flashT)/420;if(!(f>=0&&f<1))return 0;return f<.12?f/.12:Math.pow(1-(f-.12)/.88,2)}
 function muzzlePos(t){const m=t.mesh.muz||{px:0,pz:0,tip:2.5,y:1.5},c=Math.cos(t.a),sn=Math.sin(t.a),dx=Math.sin(t.ta),dz=Math.cos(t.ta);
  return[t.x+m.px*c+m.pz*sn+dx*m.tip,m.y,t.z-m.px*sn+m.pz*c+dz*m.tip,dx,dz]}
 function shoot(sh,tg,send){const[ox,oy,oz,dx,dz]=muzzlePos(sh);
- const len=wallDist(ox,oz,dx,dz);beam(ox,oz,dx,dz,len,sh===me?0x00e5ff:0xff5577,oy);sh.flashT=performance.now();sh.chargeT=0;
+ const len=wallDist(ox,oz,dx,dz);beam(ox,oz,dx,dz,len,sh===me?0x00e5ff:0xff5577,oy);sh.flashT=performance.now();sh.chargeT=0;sh.v-=2.5*Math.cos(sh.ta-sh.a);if(sh===me)shakeT=sh.flashT;
  if(send&&ws&&ws.readyState==1)ws.send(JSON.stringify({t:'shot',ox,oy,oz,dx,dz,len}));
  return{ox,oz,dx,dz,len}}
 function drive(t,ix,iy,dt,T){const cl=(v,m)=>Math.max(-m,Math.min(m,v));
@@ -297,10 +299,10 @@ function loop(now){requestAnimationFrame(loop);const dt=Math.min(.05,(now-prev)/
   sendT+=dt;if(ws&&ws.readyState==1&&sendT>.05){sendT=0;ws.send(JSON.stringify({t:'s',x:me.x,z:me.z,a:me.a,ta:me.ta,hp:me.hp}));}
   if(!opp.isBot)updHud();
  }
- if(me){for(const t of[me,opp]){t.mesh.position.set(t.x,0,t.z);t.mesh.rotation.y=t.a;t.mesh.tur.rotation.y=t.ta-t.a;t.mesh.visible=t.hp>0}
+ if(me){for(const t of[me,opp]){const rc=recoil(t,performance.now());t.mesh.position.set(t.x-(t===opp&&!opp.isBot?Math.sin(t.ta)*.12*rc:0),0,t.z-(t===opp&&!opp.isBot?Math.cos(t.ta)*.12*rc:0));if(t.mesh.rec)t.mesh.rec.position.z=-.25*rc;t.mesh.rotation.y=t.a;t.mesh.tur.rotation.y=t.ta-t.a;t.mesh.visible=t.hp>0}
   for(const t of[me,opp])updGlow(t,now);
   const cp=Math.cos(camPitch),sp=Math.sin(camPitch),D=9,sx=Math.sin(me.ta),sz=Math.cos(me.ta);
-  cam.position.set(Math.max(-A-4,Math.min(A+4,me.x-sx*cp*D)),1.2+sp*D,Math.max(-A-4,Math.min(A+4,me.z-sz*cp*D)));cam.lookAt(me.x+sx*5,1.2,me.z+sz*5);}
+  cam.position.set(Math.max(-A-4,Math.min(A+4,me.x-sx*cp*D)),1.2+sp*D,Math.max(-A-4,Math.min(A+4,me.z-sz*cp*D)));{const sk=performance.now()-shakeT;if(sk<300){const a=.14*(1-sk/300)**2;cam.position.x+=(Math.random()-.5)*a;cam.position.y+=(Math.random()-.5)*a;cam.position.z+=(Math.random()-.5)*a}}cam.lookAt(me.x+sx*5,1.2,me.z+sz*5);}
  else{cam.position.set(0,25,-35);cam.lookAt(0,0,0)}
  renderer.render(scene,cam)}
 requestAnimationFrame(loop);
