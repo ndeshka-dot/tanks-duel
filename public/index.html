@@ -4,7 +4,7 @@
 <style>
 html,body{margin:0;height:100%;overflow:hidden;background:#111;font-family:sans-serif;color:#fff;touch-action:none;user-select:none;-webkit-user-select:none}
 canvas{display:block}
-#menu,#msg{position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:rgba(0,0,0,.85);z-index:10;text-align:center;padding:10px}
+#menu{overflow-y:auto}#menu,#msg{position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:rgba(0,0,0,.85);z-index:10;text-align:center;padding:10px}
 .card{display:inline-block;margin:6px;padding:12px;border:2px solid #555;border-radius:10px;width:140px;background:#222}
 .card.sel{border-color:#ffb300;background:#332a00}
 button{font-size:20px;padding:12px 28px;border-radius:10px;border:0;background:#ffb300;margin-top:14px}
@@ -17,9 +17,10 @@ button{font-size:20px;padding:12px 28px;border-radius:10px;border:0;background:#
 #fire{position:fixed;right:25px;bottom:30px;width:100px;height:100px;border-radius:50%;background:rgba(255,60,60,.6);display:none;text-align:center;line-height:100px;font-weight:bold}
 #rl{position:fixed;right:25px;bottom:140px;width:100px;height:8px;background:#333;display:none}#rl i{display:block;height:100%;background:#0cf}
 </style></head><body>
-<div id="menu"><h2>TANKS 1v1</h2><div>Выбери танк (пушка Railgun):</div>
+<div id="menu"><h2>TANKS 1v1</h2><canvas id="pv" width="480" height="260" style="width:240px;height:130px;border-radius:10px;background:#1a2230;margin:4px 0"></canvas>
+<div>Выбери танк (пушка Railgun):</div>
 <div><div class="card sel" id="c_hornet"><b>Hornet</b><br>Railgun<br>HP 150, медленный</div><div class="card" id="c_wasp"><b>Wasp</b><br>Railgun<br>HP 100, быстрый</div></div>
-<div style="margin-top:8px">Скин:</div><div><div class="card sel" id="s_redgold"><b>XT</b></div><div class="card" id="s_camo"><b>LG</b></div><div class="card" id="s_silver"><b>2.0</b></div></div>
+<div style="margin-top:8px">Скин:</div><div><div class="card sel" id="s_redgold" style="width:76px;padding:10px 6px"><b>XT</b></div><div class="card" id="s_camo" style="width:76px;padding:10px 6px"><b>LG</b></div><div class="card" id="s_silver" style="width:76px;padding:10px 6px"><b>2.0</b></div></div>
 <button id="go">Играть</button><div id="info" style="margin-top:10px;color:#aaa"></div><div style="margin-top:14px;font-size:11px;color:#777">Hornet&amp;Railgun Legacy by AVI3L (CC-BY-4.0)</div></div>
 <div id="msg" style="display:none;background:rgba(0,0,0,.6)"><h1 id="mt"></h1><button onclick="location.reload()">Ещё раз</button></div>
 <div id="hud"><div class="bar" style="left:8px"><i id="hp1" style="width:100%"></i></div><div class="bar" style="right:8px"><i id="hp2" style="width:100%;float:right"></i></div><div id="score"></div></div>
@@ -34,8 +35,8 @@ let room=params.get('room');if(!room){room=Math.random().toString(36).slice(2,7)
 let myType='hornet',mySkin='redgold';const SKINS=['redgold','camo','silver'];
 const $=id=>document.getElementById(id);
 $('info').textContent='Комната: '+room+' — отправь другу эту ссылку, если хочешь играть вдвоём';
-['hornet','wasp'].forEach(k=>$('c_'+k).onclick=()=>{myType=k;$('c_hornet').classList.toggle('sel',k=='hornet');$('c_wasp').classList.toggle('sel',k=='wasp')});
-SKINS.forEach(k=>$('s_'+k).onclick=()=>{mySkin=k;SKINS.forEach(j=>$('s_'+j).classList.toggle('sel',j==k))});
+['hornet','wasp'].forEach(k=>$('c_'+k).onclick=()=>{myType=k;pvRefresh();$('c_hornet').classList.toggle('sel',k=='hornet');$('c_wasp').classList.toggle('sel',k=='wasp')});
+SKINS.forEach(k=>$('s_'+k).onclick=()=>{mySkin=k;pvRefresh();SKINS.forEach(j=>$('s_'+j).classList.toggle('sel',j==k))});
 // scene
 const renderer=new THREE.WebGLRenderer({antialias:false});renderer.setPixelRatio(Math.min(devicePixelRatio,2));
 renderer.setSize(innerWidth,innerHeight);document.body.appendChild(renderer.domElement);
@@ -138,6 +139,21 @@ function makeModelTank(type,skin){const key=modelKey(type,skin),src=MODELS[key];
  if(turNode)g.muzzleD=3.87*sc;
  g.tur=tur;g.hull=hi;scene.add(g);return g}
 function makeTank(type,skin){let m=null;try{m=makeModelTank(type,skin)}catch(e){console.warn(e)}return m||makeProcTank(type,skin)}
+
+// ---- menu preview ----
+const pvCv=$('pv'),pvR=new THREE.WebGLRenderer({canvas:pvCv,antialias:true,alpha:false});pvR.setPixelRatio(Math.min(devicePixelRatio,2));pvR.setSize(240,130,false);
+const pvS=new THREE.Scene();pvS.background=new THREE.Color(0x1a2230);pvS.add(new THREE.HemisphereLight(0xffffff,0x445566,1.1));const pvL=new THREE.DirectionalLight(0xffffff,.9);pvL.position.set(4,6,3);pvS.add(pvL);
+const pvC=new THREE.PerspectiveCamera(35,240/130,.1,50);pvC.position.set(0,2.4,5.2);pvC.lookAt(0,.6,0);
+const pvGround=new THREE.Mesh(new THREE.CylinderGeometry(2.6,2.6,.05,32),new THREE.MeshLambertMaterial({color:0x2d3a4a}));pvGround.position.y=-.03;pvS.add(pvGround);
+let pvT=null,pvOn=true,pvK='';
+function pvRefresh(){const k=myType+'/'+mySkin+'/'+Object.keys(MODELS).length;if(k==pvK)return;pvK=k;
+ if(pvT){pvS.remove(pvT)}try{pvT=makeTank(myType,mySkin);scene.remove(pvT);pvS.add(pvT);pvT.tur.rotation.y=0}catch(e){console.warn(e)}}
+loadP.then(pvRefresh);pvRefresh();
+let pvLast=performance.now();
+function pvLoop(now){if(!pvOn)return;requestAnimationFrame(pvLoop);const dt=Math.min(.05,(now-pvLast)/1000);pvLast=now;
+ if(pvT){pvT.rotation.y+=dt*.6;pvT.tur.rotation.y=Math.sin(now/1500)*.35}pvR.render(pvS,pvC)}
+requestAnimationFrame(pvLoop);
+function pvStop(){pvOn=false;pvS.remove(pvT);pvR.dispose();pvCv.style.display='none'}
 // state: yaw 0 => facing +z. tank a = hull yaw, ta = turret world yaw
 function mk(type,x,z,a,skin){return{type,x,z,a,ta:a,hp:TANKS[type].hp,max:TANKS[type].hp,mesh:makeTank(type,skin),kills:0,last:0}}
 let me,opp,mode='menu',idx=0,ws,bot=null,over=false;
@@ -178,7 +194,7 @@ const tend=e=>{if(e.pointerId===tid)tid=null};cv.addEventListener('pointerup',te
 $('fire').addEventListener('pointerdown',e=>{e.stopPropagation();fireReq=true});
 const keys={};addEventListener('keydown',e=>{keys[e.code]=1;if(e.code=='Space')fireReq=true});addEventListener('keyup',e=>keys[e.code]=0);
 // flow
-$('go').onclick=()=>{$('go').disabled=true;$('info').textContent='Загрузка моделей…';Promise.race([loadP,new Promise(r=>setTimeout(r,6000))]).then(startWait)};
+$('go').onclick=()=>{$('go').disabled=true;$('info').textContent='Загрузка моделей…';pvStop();Promise.race([loadP,new Promise(r=>setTimeout(r,6000))]).then(startWait)};
 function begin(i,oppType,isBot,oppSkin){idx=i;const sp=spawnPos(i),so=spawnPos(1-i);
  me=mk(myType,sp[0],sp[1],sp[2],mySkin);opp=mk(oppType,so[0],so[1],so[2],oppSkin||SKINS[Math.floor(Math.random()*3)]);opp.isBot=isBot;
  mode='play';$('menu').style.display='none';['hud','joy','fire','rl'].forEach(id=>$(id).style.display='block');
