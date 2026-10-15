@@ -52,6 +52,9 @@ addBox(0,0,6,6);addBox(-12,8,4,8);addBox(12,-8,4,8);addBox(10,12,5,3);addBox(-10
 const SK={redgold:{base:'#9a1a1a',acc:'#d9a82b',dark:'#4a0b0b',light:0xffcc33,metal:0xd9a82b,turret:'#8a1515'},
  camo:{base:'#d8c43a',acc:'#8a7a1c',dark:'#5a5010',light:0xffee66,metal:0x6b6a40,turret:'#cdb52e'},
  silver:{base:'#3f6b2f',acc:'#c4cacc',dark:'#1f3a18',light:0x33f0ff,metal:0xc4cacc,turret:'#34592a'}};
+SK.w_redgold={base:'#2f4a22',acc:'#c9a45a',dark:'#14240e',light:0xff2222,metal:0xc9a45a,turret:'#2a4220'};
+SK.w_camo={base:'#4d5a24',acc:'#8a9a50',dark:'#262e10',light:0xffdd55,metal:0x6e7a3c,turret:'#46531f'};
+SK.w_silver={base:'#4a5a22',acc:'#9aa0a0',dark:'#252d10',light:0x33f0ff,metal:0x8c9090,turret:'#43521f'};
 const skinCache={};
 function rnd(i){const x=Math.sin(i*127.1)*43758.5453;return x-Math.floor(x)}
 function skinMats(k){if(skinCache[k])return skinCache[k];const S=SK[k],N=128,cv=document.createElement('canvas');cv.width=cv.height=N;const c=cv.getContext('2d');
@@ -69,7 +72,25 @@ function skinMats(k){if(skinCache[k])return skinCache[k];const S=SK[k],N=128,cv=
  return skinCache[k]=m}
 const gBox=new THREE.BoxGeometry(1,1,1),gCyl=new THREE.CylinderGeometry(.3,.3,.3,10);gCyl.rotateZ(Math.PI/2);
 function part(par,geo,mat,x,y,z,sx,sy,sz,rx){const m=new THREE.Mesh(geo,mat);m.position.set(x,y,z);m.scale.set(sx,sy,sz);if(rx)m.rotation.x=rx;par.add(m);return m}
-function makeTank(type,skin){const M=skinMats(skin||'redgold'),g=new THREE.Group(),W=type=='hornet'?2.0:1.6,L=3.3,hw=W/2;
+function makeWasp(skin){const M=skinMats('w_'+skin),g=new THREE.Group(),W=2.3,L=3.4,hw=W/2;
+ part(g,gBox,M.hull,0,.5,0,W-.9,.45,L-.5);
+ part(g,gBox,M.hull,0,.5,L/2-.3,W-1.0,.3,.8,.45);
+ part(g,gBox,M.hull,0,.5,-L/2+.2,W-1.0,.3,.6,-.45);
+ for(const s of[-1,1]){
+  part(g,gBox,M.track,s*(hw-.3),.4,0,.6,.7,L);
+  part(g,gBox,M.track,s*(hw-.3),.4,L/2,.6,.6,.3,0.8);
+  for(let i=0;i<4;i++)part(g,gCyl,M.dark,s*(hw),.38,-L/2+.5+i*(L-1)/3,.5,1.0,1.0);
+  part(g,gBox,M.plate,s*(hw-.3),.78,0,.55,.1,L-.2);
+  if(skin=='redgold'){part(g,gBox,M.plate,s*(hw-.05),.55,.3,.08,.45,L-.6);for(let i=0;i<3;i++)part(g,gBox,M.plate,s*(hw-.3),.84,-.8+i*.4,.5,.04,.12);}
+  part(g,gBox,M.light,s*.25,.62,L/2+.02,.14,.1,.06);}
+ part(g,gBox,M.hull,0,.82,-.2,W-1.1,.14,L-1.2);
+ if(skin=='camo'){for(const s of[-1,1])part(g,gBox,M.plate,s*.35,.91,-.1,.3,.03,1.4)}
+ if(skin=='silver'){const e=new THREE.Mesh(new THREE.CylinderGeometry(.32,.32,.04,16),M.plate);e.position.set(0,.92,-.5);g.add(e);part(g,gBox,M.light,.3,.9,.2,.1,.08,.1)}
+ const tur=new THREE.Group();tur.position.y=.9;
+ part(tur,gBox,M.tur,0,.1,.3,.8,.22,.9);part(tur,gBox,M.plate,0,.22,.3,.4,.1,.5);
+ part(tur,gBox,M.barrel,0,.12,1.5,.14,.14,2.0);part(tur,gBox,M.light,0,.12,2.52,.1,.1,.05);
+ g.add(tur);g.tur=tur;g.hull=g;scene.add(g);return g;}
+function makeTank(type,skin){if(type=='wasp')return makeWasp(skin||'redgold');const M=skinMats(skin||'redgold'),g=new THREE.Group(),W=type=='hornet'?2.0:1.6,L=3.3,hw=W/2;
  const hull=new THREE.Group();g.add(hull);
  part(hull,gBox,M.hull,0,.62,0,W-.5,.5,L-.4);
  part(hull,gBox,M.hull,0,.55,L/2-.35,W-.5,.35,.9,.5);
