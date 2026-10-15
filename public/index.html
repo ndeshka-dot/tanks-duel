@@ -185,8 +185,8 @@ function rayBox(ox,oz,dx,dz,b){let tmin=0,tmax=1e9;
  return tmin}
 function rayCircle(ox,oz,dx,dz,cx,cz,r){const fx=cx-ox,fz=cz-oz,p=fx*dx+fz*dz;if(p<0)return null;const d2=fx*fx+fz*fz-p*p;return d2<=r*r?p:null}
 const beams=[];
-function beam(ox,oz,dx,dz,len,col,oy=1.5){const g=new THREE.CylinderGeometry(.08,.08,len,6);g.rotateX(Math.PI/2);g.translate(0,0,len/2);
- const m=new THREE.Mesh(g,new THREE.MeshBasicMaterial({color:col,transparent:true,opacity:.9}));m.position.set(ox,oy,oz);m.lookAt(ox+dx,oy,oz+dz);scene.add(m);beams.push({m,t:0});}
+function beam(ox,oz,dx,dz,len,col,oy=1.5,dy=0){const L=Math.hypot(len,dy),g=new THREE.CylinderGeometry(.08,.08,L,6);g.rotateX(Math.PI/2);g.translate(0,0,L/2);
+ const m=new THREE.Mesh(g,new THREE.MeshBasicMaterial({color:col,transparent:true,opacity:.9}));m.position.set(ox,oy,oz);m.lookAt(ox+dx*len,oy+dy,oz+dz*len);scene.add(m);beams.push({m,t:0});}
 function wallDist(ox,oz,dx,dz){let best=RANGE;for(const b of boxes){const t=rayBox(ox,oz,dx,dz,b);if(t!==null&&t<best)best=t}return best}
 // shooter fires: returns hit?
 let shakeT=0;
@@ -194,8 +194,10 @@ function recoil(t,now){const f=(now-t.flashT)/420;if(!(f>=0&&f<1))return 0;retur
 function muzzlePos(t){const m=t.mesh.muz||{px:0,pz:0,tip:2.5,y:1.5},c=Math.cos(t.a),sn=Math.sin(t.a),dx=Math.sin(t.ta),dz=Math.cos(t.ta);
  return[t.x+m.px*c+m.pz*sn+dx*m.tip,m.y,t.z-m.px*sn+m.pz*c+dz*m.tip,dx,dz]}
 function shoot(sh,tg,send){const[ox,oy,oz,dx,dz]=muzzlePos(sh);
- const len=wallDist(ox,oz,dx,dz);beam(ox,oz,dx,dz,len,sh===me?0x00e5ff:0xff5577,oy);sh.flashT=performance.now();sh.chargeT=0;sh.v-=2.5*Math.cos(sh.ta-sh.a);if(sh===me)shakeT=sh.flashT;
- if(send&&ws&&ws.readyState==1)ws.send(JSON.stringify({t:'shot',ox,oy,oz,dx,dz,len,dm:(sh.buffs.damage>performance.now())?2:1}));
+ const len=wallDist(ox,oz,dx,dz);let vl=len,dy=0;
+ if(tg&&tg.hp>0){const p=rayCircle(ox,oz,dx,dz,tg.x,tg.z,R*1.6);if(p!==null&&p<=len&&p>.5){vl=p;dy=.9-oy}}
+ beam(ox,oz,dx,dz,vl,sh===me?0x00e5ff:0xff5577,oy,dy);sh.flashT=performance.now();sh.chargeT=0;sh.v-=2.5*Math.cos(sh.ta-sh.a);if(sh===me)shakeT=sh.flashT;
+ if(send&&ws&&ws.readyState==1)ws.send(JSON.stringify({t:'shot',ox,oy,oz,dx,dz,len,vl,dy,dm:(sh.buffs.damage>performance.now())?2:1}));
  return{ox,oz,dx,dz,len}}
 function drive(t,ix,iy,dt,T){const cl=(v,m)=>Math.max(-m,Math.min(m,v));
  const sm=(t.buffs&&t.buffs.speed>performance.now())?2:1;const tv=cl(iy,1)*T.speed*sm*(iy<0?.6:1);let rate=T.acc*sm;if(Math.abs(tv)<.01)rate=T.drag*sm;else if(t.v*tv<0||Math.abs(tv)<Math.abs(t.v))rate=T.acc*sm*1.6;
@@ -253,7 +255,7 @@ function connect(code,kind,tries=0){if(busy)return;busy=true;$('info').textConte
    else if(d.t=='wait'){$('lst').textContent='Ожидание соперника...'}
    else if(d.t=='start'){started=true;busy=false;begin(d.idx,d.opp,false,d.oppPaint)}
    else if(d.t=='s'&&opp&&!over){opp.tx=d.x;opp.tz=d.z;opp.ta2=d.a;opp.tta=d.ta;opp.hp=d.hp}
-   else if(d.t=='shot'&&opp&&!over){beam(d.ox,d.oz,d.dx,d.dz,d.len,0xff5577,d.oy||1.5);opp.chargeT=0;opp.flashT=performance.now();if(me.hp>0&&hitCheck(d,me)){damage(me,DMG*(d.dm||1)*(me.buffs.defense>performance.now()?.5:1));if(me.hp<=0)died()}}
+   else if(d.t=='shot'&&opp&&!over){beam(d.ox,d.oz,d.dx,d.dz,d.vl||d.len,0xff5577,d.oy||1.5,d.dy||0);opp.chargeT=0;opp.flashT=performance.now();if(me.hp>0&&hitCheck(d,me)){damage(me,DMG*(d.dm||1)*(me.buffs.defense>performance.now()?.5:1));if(me.hp<=0)died()}}
    else if(d.t=='charge'&&opp&&!over){opp.chargeT=performance.now()}
    else if(d.t=='drop'){addDrop(d.id,d.zone)}
    else if(d.t=='dropgone'){removeDrop(d.id)}
