@@ -1,11 +1,11 @@
 const express=require('express'),http=require('http'),{WebSocketServer}=require('ws');
 const app=express();app.use(express.static(__dirname+'/public'));
 const srv=http.createServer(app),wss=new WebSocketServer({server:srv});
-const rooms={};
+const rooms={};const PAINTS=['p0','p1','p2','p3','p4','p5'];
 const send=(w,o)=>{if(w&&w.readyState===1)w.send(JSON.stringify(o))};
 function tryStart(r){
   if(r.length===2&&!r.started&&r.every(w=>w.ready)){r.started=true;
-    r.forEach((w,i)=>{w.ready=false;send(w,{t:'start',idx:i,opp:r[1-i].tank})});}
+    r.forEach((w,i)=>{w.ready=false;send(w,{t:'start',idx:i,opp:r[1-i].tank,oppPaint:r[1-i].paint||''})});}
 }
 wss.on('connection',(ws,req)=>{
   const q=new URL(req.url,'http://x').searchParams;
@@ -19,7 +19,7 @@ wss.on('connection',(ws,req)=>{
   r.push(ws);ws.tank='hornet';ws.ready=false;
   if(r.length===2)r.forEach(w=>w!==ws&&send(w,{t:'joined'}));
   ws.on('message',m=>{let d;try{d=JSON.parse(m)}catch{return}
-    if(d.t==='hello'){ws.tank=d.tank==='wasp'?'wasp':'hornet';ws.ready=true;tryStart(r);return;}
+    if(d.t==='hello'){ws.tank=d.tank==='wasp'?'wasp':'hornet';ws.paint=PAINTS.includes(d.paint)?d.paint:'';ws.ready=true;tryStart(r);return;}
     if(d.t==='rematch'){ws.ready=true;r.started=false;if(r.length<2)send(ws,{t:'wait'});tryStart(r);return;}
     if(!r.started)return;
     const o=r.find(w=>w!==ws);if(o)send(o,d);});
