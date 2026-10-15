@@ -120,30 +120,17 @@ function makeProcTank(type,skin){if(type=='wasp')return makeWasp(skin||'redgold'
 
 // ---- real models (GLTF) with procedural fallback ----
 const MODELS={};const ML=new GLTFLoader();
-const MDEF={hornet:{url:'models/hornet/hornet_standard.gltf',len:3.7,mount:[1.35,.08]},wasp:{url:'models/wasp/wasp_standard.gltf',len:3.5,mount:[1.48,.82]},tLG:{url:'models/turret/legacy.gltf'}};
+const MDEF={hornet:{url:'models/m3/hornet.gltf',len:3.7},wasp:{url:'models/m3/wasp.gltf',len:3.5},tur:{url:'models/m3/turret.gltf'}};
 const loadP=Promise.all(Object.keys(MDEF).map(k=>new Promise(r=>{ML.load(MDEF[k].url,g=>{MODELS[k]=g.scene;r()},undefined,()=>r())}))).catch(()=>{});
-const TINT={wasp:{redgold:0xffcf80,camo:0x8a9560,silver:0xffffff},hornet:{redgold:0xffffff,camo:0xb8c070,silver:0xffffff}};
-function modelKey(type,skin){return type=='wasp'?'wasp':(skin=='silver'?'hornet':'legacy')}
-function makeModelTank(type,skin){const key=modelKey(type,skin),src=MODELS[key];if(!src)return null;
- const def=MDEF[key],tint=TINT[type][skin],g=new THREE.Group();
- const root=src.clone(true);const rm=[];
- root.traverse(o=>{if(/^(Light|Camera|Lamp)/.test(o.name))rm.push(o);if(o.isMesh){o.material=o.material.clone();if(!/track|#16/i.test(o.material.name))o.material.color.setHex(tint);}});
- rm.forEach(o=>o.parent&&o.parent.remove(o));
- let turNode=null;if(key=='legacy'){root.traverse(o=>{if(o.name=='turret')turNode=o});}
- if(turNode)turNode.parent.remove(turNode);
+function makeModelTank(type){const src=MODELS[type],ts=MODELS.tur;if(!src||!ts)return null;
+ const def=MDEF[type],g=new THREE.Group(),root=src.clone(true);
+ const mnt=root.getObjectByName('mount');if(!mnt)return null;const mp=mnt.position.clone();mnt.parent.remove(mnt);
+ root.traverse(o=>{if(o.isMesh)o.material=o.material.clone()});
  const hb=new THREE.Box3().setFromObject(root),sz=hb.getSize(new THREE.Vector3()),sc=def.len/sz.z,yoff=-hb.min.y*sc;
- const hi=new THREE.Group();hi.rotation.y=Math.PI;hi.scale.setScalar(sc);hi.position.y=yoff;hi.add(root);g.add(hi);
- const tur=new THREE.Group();g.add(tur);
- if(turNode){tur.position.y=yoff+1.35*sc;const ti=new THREE.Group();ti.rotation.y=Math.PI;ti.scale.setScalar(sc);turNode.position.set(0,-1.35,0);ti.add(turNode);tur.add(ti);
-  turNode.traverse(o=>{if(o.isMesh)o.material=o.material.clone()});if(tint!=0xffffff)turNode.traverse(o=>{if(o.isMesh)o.material.color.setHex(tint)});}
- else{tur.position.set(0,yoff+def.mount[0]*sc-.05,-def.mount[1]*sc);
-  const ts=MODELS[skin=='redgold'?'tXT':'tLG'];
-  if(ts){const t=ts.clone(true),mz=t.getObjectByName('muzzle'),k=2.8/(mz?mz.position.z:4.13);t.scale.setScalar(k);t.traverse(o=>{if(o.isMesh)o.material=o.material.clone()});tur.add(t);g.muzzleD=tur.position.z+(mz?mz.position.z:4.13)*k;}
-  else{const M=skinMats(type=='wasp'?'w_'+skin:'silver');
-  part(tur,gBox,M.tur,0,.12,.0,1.0,.3,1.2);part(tur,gBox,M.plate,0,.32,-.1,.5,.14,.6);
-  part(tur,gBox,M.barrel,0,.14,1.7,.16,.16,2.2);part(tur,gBox,M.light,0,.14,2.8,.1,.1,.05);part(tur,gBox,M.light,.3,.3,.65,.1,.08,.05);}}
- if(turNode)g.muzzleD=3.87*sc;
- g.tur=tur;g.hull=hi;scene.add(g);return g}
+ root.scale.setScalar(sc);root.position.y=yoff;g.add(root);
+ const tur=new THREE.Group();tur.position.set(mp.x*sc,yoff+mp.y*sc,mp.z*sc);g.add(tur);
+ const t=ts.clone(true),mz=t.getObjectByName('muzzle'),mzp=mz?mz.position.z:4.13;t.traverse(o=>{if(o.isMesh)o.material=o.material.clone()});t.scale.setScalar(sc);tur.add(t);
+ g.muzzleD=tur.position.z+mzp*sc;g.tur=tur;g.hull=root;scene.add(g);return g}
 function makeTank(type,skin){let m=null;try{m=makeModelTank(type,skin)}catch(e){console.warn(e)}return m||makeProcTank(type,skin)}
 
 // ---- menu preview ----
