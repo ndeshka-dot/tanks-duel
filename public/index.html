@@ -287,7 +287,7 @@ function botAI(dt,now){const o=opp,dx=me.x-o.x,dz=me.z-o.z,d=Math.hypot(dx,dz),w
  else if(now-o.last>RELOAD+800&&Math.abs(da)<.12&&me.hp>0)o.chargeT=now}
 // ---- bonus drops ----
 const ZONES=[{t:'speed',x:-20,z:-4},{t:'repair',x:20,z:4},{t:'defense',x:-6,z:10},{t:'damage',x:6,z:-10}];
-const BCOL={speed:0xffee33,defense:0xffe9a8,damage:0xff3322},BN={speed:'Ускорение',defense:'Защита',damage:'Урон'},BUFFMS=10000;
+const BCOL={speed:0xffee33,defense:0xffe9a8,damage:0xff3322},BN={speed:'Ускорение',defense:'Защита',damage:'Урон'},BUFFMS=30000;
 const TLd=new THREE.TextureLoader(),BT={};['speed','repair','defense','damage'].forEach(k=>{BT[k]={box:TLd.load('bonus/'+k+'_box.png'),zone:TLd.load('bonus/'+k+'_zone.png')};BT[k].box.colorSpace=BT[k].zone.colorSpace=THREE.SRGBColorSpace});
 const zoneMeshes=ZONES.map(z=>{const m=new THREE.Mesh(new THREE.PlaneGeometry(3.4,3.4),new THREE.MeshBasicMaterial({map:BT[z.t].zone,transparent:true,depthWrite:false}));m.rotation.x=-Math.PI/2;m.position.set(z.x,.06,z.z);scene.add(m);return m});
 let drops=[],nextDropAt=0,localId=0;
