@@ -1,0 +1,149 @@
+<!doctype html><html><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>Tanks 1v1</title>
+<style>
+html,body{margin:0;height:100%;overflow:hidden;background:#111;font-family:sans-serif;color:#fff;touch-action:none;user-select:none;-webkit-user-select:none}
+canvas{display:block}
+#menu,#msg{position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:rgba(0,0,0,.85);z-index:10;text-align:center;padding:10px}
+.card{display:inline-block;margin:6px;padding:12px;border:2px solid #555;border-radius:10px;width:140px;background:#222}
+.card.sel{border-color:#ffb300;background:#332a00}
+button{font-size:20px;padding:12px 28px;border-radius:10px;border:0;background:#ffb300;margin-top:14px}
+#hud{position:fixed;top:0;left:0;right:0;pointer-events:none;display:none}
+.bar{position:absolute;top:8px;width:36%;height:16px;background:#400;border:1px solid #fff}
+.bar i{display:block;height:100%;background:#4c4}
+#score{position:absolute;top:28px;width:100%;text-align:center;font-size:18px}
+#joy{position:fixed;left:20px;bottom:20px;width:130px;height:130px;border-radius:50%;background:rgba(255,255,255,.15);display:none}
+#knob{position:absolute;left:45px;top:45px;width:40px;height:40px;border-radius:50%;background:rgba(255,255,255,.5)}
+#fire{position:fixed;right:25px;bottom:30px;width:100px;height:100px;border-radius:50%;background:rgba(255,60,60,.6);display:none;text-align:center;line-height:100px;font-weight:bold}
+#rl{position:fixed;right:25px;bottom:140px;width:100px;height:8px;background:#333;display:none}#rl i{display:block;height:100%;background:#0cf}
+</style></head><body>
+<div id="menu"><h2>TANKS 1v1</h2><div>Выбери танк (пушка Railgun):</div>
+<div><div class="card sel" id="c_hornet"><b>Hornet</b><br>Railgun<br>HP 150, медленный</div><div class="card" id="c_wasp"><b>Wasp</b><br>Railgun<br>HP 100, быстрый</div></div>
+<button id="go">Играть</button><div id="info" style="margin-top:10px;color:#aaa"></div></div>
+<div id="msg" style="display:none;background:rgba(0,0,0,.6)"><h1 id="mt"></h1><button onclick="location.reload()">Ещё раз</button></div>
+<div id="hud"><div class="bar" style="left:8px"><i id="hp1" style="width:100%"></i></div><div class="bar" style="right:8px"><i id="hp2" style="width:100%;float:right"></i></div><div id="score"></div></div>
+<div id="joy"><div id="knob"></div></div><div id="fire">FIRE</div><div id="rl"><i id="rli"></i></div>
+<script type="module">
+import * as THREE from './three.module.min.js';
+const TANKS={hornet:{hp:150,speed:5,turn:1.8,color:0x6b7a3a},wasp:{hp:100,speed:8.5,turn:2.8,color:0xc9a227}};
+const DMG=50,RELOAD=2000,RANGE=80,A=30,WIN=3,R=1.3;
+const params=new URLSearchParams(location.search);
+let room=params.get('room');if(!room){room=Math.random().toString(36).slice(2,7);}
+let myType='hornet';
+const $=id=>document.getElementById(id);
+$('info').textContent='Комната: '+room+' — отправь другу эту ссылку, если хочешь играть вдвоём';
+['hornet','wasp'].forEach(k=>$('c_'+k).onclick=()=>{myType=k;$('c_hornet').classList.toggle('sel',k=='hornet');$('c_wasp').classList.toggle('sel',k=='wasp')});
+// scene
+const renderer=new THREE.WebGLRenderer({antialias:false});renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+renderer.setSize(innerWidth,innerHeight);document.body.appendChild(renderer.domElement);
+const scene=new THREE.Scene();scene.background=new THREE.Color(0x87b8e0);scene.fog=new THREE.Fog(0x87b8e0,40,110);
+const cam=new THREE.PerspectiveCamera(65,innerWidth/innerHeight,.1,200);
+addEventListener('resize',()=>{renderer.setSize(innerWidth,innerHeight);cam.aspect=innerWidth/innerHeight;cam.updateProjectionMatrix()});
+scene.add(new THREE.HemisphereLight(0xffffff,0x556655,1.0));
+const sun=new THREE.DirectionalLight(0xffffff,.8);sun.position.set(10,20,5);scene.add(sun);
+const ground=new THREE.Mesh(new THREE.PlaneGeometry(A*2,A*2),new THREE.MeshLambertMaterial({color:0x6a7b5a}));ground.rotation.x=-Math.PI/2;scene.add(ground);
+scene.add(new THREE.GridHelper(A*2,20,0x445544,0x556655));
+const boxes=[];
+function addBox(x,z,w,d,h=3,c=0x8a8a92){const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),new THREE.MeshLambertMaterial({color:c}));m.position.set(x,h/2,z);scene.add(m);boxes.push({x,z,hw:w/2,hd:d/2});}
+addBox(0,0,6,6);addBox(-12,8,4,8);addBox(12,-8,4,8);addBox(10,12,5,3);addBox(-10,-12,5,3);addBox(0,-18,10,2);addBox(0,18,10,2);
+[[0,-A-.5,A*2,1],[0,A+.5,A*2,1],[-A-.5,0,1,A*2],[A+.5,0,1,A*2]].forEach(w=>addBox(w[0],w[1],w[2],w[3],4,0x555560));
+function makeTank(type){const g=new THREE.Group(),c=TANKS[type].color,mat=new THREE.MeshLambertMaterial({color:c});
+ const hull=new THREE.Mesh(new THREE.BoxGeometry(type=='hornet'?2.2:1.8,.8,3.2),mat);hull.position.y=.6;g.add(hull);
+ const tur=new THREE.Group();tur.position.y=1.2;const t=new THREE.Mesh(new THREE.BoxGeometry(1.3,.6,1.5),new THREE.MeshLambertMaterial({color:0x333333}));tur.add(t);
+ const b=new THREE.Mesh(new THREE.BoxGeometry(.25,.25,2.6),new THREE.MeshLambertMaterial({color:0x00b7ff}));b.position.z=1.8;tur.add(b);g.add(tur);g.tur=tur;g.hull=hull;scene.add(g);return g;}
+// state: yaw 0 => facing +z. tank a = hull yaw, ta = turret world yaw
+function mk(type,x,z,a){return{type,x,z,a,ta:a,hp:TANKS[type].hp,max:TANKS[type].hp,mesh:makeTank(type),kills:0,last:0}}
+let me,opp,mode='menu',idx=0,ws,bot=null,over=false;
+function spawnPos(i){return i==0?[0,-24,0]:[0,24,Math.PI]}
+function resolve(t){t.x=Math.max(-A+R,Math.min(A-R,t.x));t.z=Math.max(-A+R,Math.min(A-R,t.z));
+ for(const b of boxes){const cx=Math.max(b.x-b.hw,Math.min(t.x,b.x+b.hw)),cz=Math.max(b.z-b.hd,Math.min(t.z,b.z+b.hd));
+  let dx=t.x-cx,dz=t.z-cz,d=Math.hypot(dx,dz);if(d<R){if(d<1e-4){t.x+=R;continue}t.x+=dx/d*(R-d);t.z+=dz/d*(R-d);}}}
+// ray vs aabb 2D -> t or null
+function rayBox(ox,oz,dx,dz,b){let tmin=0,tmax=1e9;
+ for(const[o,d,lo,hi]of[[ox,dx,b.x-b.hw,b.x+b.hw],[oz,dz,b.z-b.hd,b.z+b.hd]]){
+  if(Math.abs(d)<1e-9){if(o<lo||o>hi)return null}else{let t1=(lo-o)/d,t2=(hi-o)/d;if(t1>t2)[t1,t2]=[t2,t1];tmin=Math.max(tmin,t1);tmax=Math.min(tmax,t2);if(tmin>tmax)return null}}
+ return tmin}
+function rayCircle(ox,oz,dx,dz,cx,cz,r){const fx=cx-ox,fz=cz-oz,p=fx*dx+fz*dz;if(p<0)return null;const d2=fx*fx+fz*fz-p*p;return d2<=r*r?p:null}
+const beams=[];
+function beam(ox,oz,dx,dz,len,col){const g=new THREE.CylinderGeometry(.08,.08,len,6);g.rotateX(Math.PI/2);g.translate(0,0,len/2);
+ const m=new THREE.Mesh(g,new THREE.MeshBasicMaterial({color:col,transparent:true,opacity:.9}));m.position.set(ox,1.5,oz);m.lookAt(ox+dx,1.5,oz+dz);scene.add(m);beams.push({m,t:0});}
+function wallDist(ox,oz,dx,dz){let best=RANGE;for(const b of boxes){const t=rayBox(ox,oz,dx,dz,b);if(t!==null&&t<best)best=t}return best}
+// shooter fires: returns hit?
+function shoot(sh,tg,send){const dx=Math.sin(sh.ta),dz=Math.cos(sh.ta),ox=sh.x+dx*2.5,oz=sh.z+dz*2.5;
+ const len=wallDist(ox,oz,dx,dz);beam(ox,oz,dx,dz,len,sh===me?0x00e5ff:0xff5577);
+ if(send&&ws)ws.send(JSON.stringify({t:'shot',ox,oz,dx,dz,len}));
+ return{ox,oz,dx,dz,len}}
+function hitCheck(s,tg){const p=rayCircle(s.ox,s.oz,s.dx,s.dz,tg.x,tg.z,R);return p!==null&&p<=s.len}
+function damage(t,d){t.hp=Math.max(0,t.hp-d)}
+// input
+const inp={x:0,y:0};let fireReq=false;
+const joy=$('joy'),knob=$('knob');let jid=null,tid=null,tx=0;
+function setJoy(e){const r=joy.getBoundingClientRect(),cx=r.left+65,cy=r.top+65;let dx=e.clientX-cx,dy=e.clientY-cy;const d=Math.hypot(dx,dy),m=55;if(d>m){dx*=m/d;dy*=m/d}
+ knob.style.left=(45+dx)+'px';knob.style.top=(45+dy)+'px';inp.x=dx/m;inp.y=-dy/m}
+joy.addEventListener('pointerdown',e=>{jid=e.pointerId;joy.setPointerCapture(jid);setJoy(e)});
+joy.addEventListener('pointermove',e=>{if(e.pointerId===jid)setJoy(e)});
+const jend=e=>{if(e.pointerId===jid){jid=null;inp.x=inp.y=0;knob.style.left=knob.style.top='45px'}};
+joy.addEventListener('pointerup',jend);joy.addEventListener('pointercancel',jend);
+const cv=renderer.domElement;
+cv.addEventListener('pointerdown',e=>{if(tid===null){tid=e.pointerId;tx=e.clientX;cv.setPointerCapture(tid)}});
+cv.addEventListener('pointermove',e=>{if(e.pointerId===tid&&me){me.ta-=(e.clientX-tx)*.008;tx=e.clientX}});
+const tend=e=>{if(e.pointerId===tid)tid=null};cv.addEventListener('pointerup',tend);cv.addEventListener('pointercancel',tend);
+$('fire').addEventListener('pointerdown',e=>{e.stopPropagation();fireReq=true});
+const keys={};addEventListener('keydown',e=>{keys[e.code]=1;if(e.code=='Space')fireReq=true});addEventListener('keyup',e=>keys[e.code]=0);
+// flow
+$('go').onclick=()=>{$('go').disabled=true;startWait()};
+function begin(i,oppType,isBot){idx=i;const sp=spawnPos(i),so=spawnPos(1-i);
+ me=mk(myType,sp[0],sp[1],sp[2]);opp=mk(oppType,so[0],so[1],so[2]);opp.isBot=isBot;
+ mode='play';$('menu').style.display='none';['hud','joy','fire','rl'].forEach(id=>$(id).style.display='block');
+ me.last=performance.now()+500;opp.last=performance.now()+2500;
+ $('score').textContent=(isBot?'Бот':'Соперник')+': '+oppType+' Railgun'; setTimeout(updHud,3000);updHud();}
+function startWait(){$('info').textContent='Ждём соперника (5 с)… комната: '+room;let started=false;
+ try{ws=new WebSocket((location.protocol=='https:'?'wss://':'ws://')+location.host+'/?room='+room)}catch(e){}
+ const fb=setTimeout(()=>{if(!started){started=true;if(ws)ws.onclose=null,ws.close();ws=null;begin(0,Math.random()<.5?'hornet':'wasp',true)}},5000);
+ if(!ws)return;
+ ws.onopen=()=>ws.send(JSON.stringify({t:'hello',tank:myType}));
+ ws.onmessage=ev=>{const d=JSON.parse(ev.data);
+  if(d.t=='start'&&!started){started=true;clearTimeout(fb);begin(d.idx,d.opp,false);}
+  else if(d.t=='full'){$('info').textContent='Комната занята, играем с ботом'}
+  else if(d.t=='s'&&opp){opp.tx=d.x;opp.tz=d.z;opp.ta2=d.a;opp.tta=d.ta;opp.hp=d.hp}
+  else if(d.t=='shot'&&opp){beam(d.ox,d.oz,d.dx,d.dz,d.len,0xff5577);if(me.hp>0&&hitCheck(d,me)){damage(me,DMG);if(me.hp<=0)died()}}
+  else if(d.t=='died'){me.kills++;respawnOpp()}
+  else if(d.t=='left'&&!over){end('Соперник вышел. Победа!')}};
+ ws.onclose=()=>{if(started&&mode=='play'&&!over&&ws)end('Связь потеряна')};
+}
+function died(){opp.kills++;if(ws)ws.send(JSON.stringify({t:'died'}));if(opp.isBot){}
+ if(opp.kills>=WIN)return end('Поражение 😢');
+ const sp=spawnPos(idx);me.x=sp[0];me.z=sp[1];me.a=me.ta=sp[2];me.hp=me.max;updHud()}
+function respawnOpp(){if(me.kills>=WIN)return end('ПОБЕДА! 🏆');if(opp.isBot){const sp=spawnPos(1-idx);opp.x=sp[0];opp.z=sp[1];opp.hp=opp.max;opp.last=performance.now()+2000}updHud()}
+function end(t){over=true;$('mt').textContent=t;$('msg').style.display='flex'}
+function updHud(){$('hp1').style.width=100*me.hp/me.max+'%';$('hp2').style.width=100*opp.hp/opp.max+'%';
+ $('score').textContent=`Ты ${me.kills} : ${opp.kills} ${opp.isBot?'Бот':'Соперник'} (до ${WIN})`}
+function botAI(dt,now){const o=opp,dx=me.x-o.x,dz=me.z-o.z,d=Math.hypot(dx,dz),want=Math.atan2(dx,dz);
+ let da=Math.atan2(Math.sin(want-o.ta),Math.cos(want-o.ta));o.ta+=Math.max(-1.5*dt,Math.min(1.5*dt,da));
+ const sp=TANKS[o.type].speed*.6;let mvx=0,mvz=0;
+ if(d>14){mvx=dx/d;mvz=dz/d}else if(d<8){mvx=-dx/d;mvz=-dz/d}else{mvx=dz/d;mvz=-dx/d}
+ o.a=Math.atan2(mvx,mvz);o.x+=mvx*sp*dt;o.z+=mvz*sp*dt;resolve(o);
+ if(now-o.last>RELOAD+800&&Math.abs(da)<.12&&me.hp>0){o.last=now;
+  o.ta+=(Math.random()-.5)*.12;const s=shoot(o,me,false);if(hitCheck(s,me)){damage(me,DMG);if(me.hp<=0)died()}updHud()}}
+let prev=performance.now(),sendT=0;
+function loop(now){requestAnimationFrame(loop);const dt=Math.min(.05,(now-prev)/1000);prev=now;
+ for(let i=beams.length-1;i>=0;i--){const b=beams[i];b.t+=dt;b.m.material.opacity=Math.max(0,.9-b.t*2.5);if(b.t>.4){scene.remove(b.m);beams.splice(i,1)}}
+ if(mode=='play'&&!over){
+  let ix=inp.x+(keys.KeyD?1:0)-(keys.KeyA?1:0),iy=inp.y+(keys.KeyW?1:0)-(keys.KeyS?1:0);
+  const T=TANKS[me.type];me.a-=ix*T.turn*dt*(iy<-.1?-1:1);
+  const mv=Math.max(-1,Math.min(1,iy))*T.speed*dt;me.x+=Math.sin(me.a)*mv;me.z+=Math.cos(me.a)*mv;resolve(me);
+  if(keys.ArrowLeft)me.ta+=2*dt;if(keys.ArrowRight)me.ta-=2*dt;
+  const rl=Math.min(1,(now-me.last)/RELOAD);$('rli').style.width=rl*100+'%';
+  if(fireReq&&rl>=1&&me.hp>0){me.last=now;const s=shoot(me,opp,true);
+   if(hitCheck(s,opp)){if(opp.isBot){damage(opp,DMG);if(opp.hp<=0){me.kills++;respawnOpp()}updHud()}}}
+  fireReq=false;
+  if(opp.isBot)botAI(dt,now);else if(opp.tx!==undefined){opp.x+=(opp.tx-opp.x)*Math.min(1,dt*15);opp.z+=(opp.tz-opp.z)*Math.min(1,dt*15);opp.a=opp.ta2;opp.ta=opp.tta}
+  sendT+=dt;if(ws&&sendT>.05){sendT=0;ws.send(JSON.stringify({t:'s',x:me.x,z:me.z,a:me.a,ta:me.ta,hp:me.hp}));}
+  if(!opp.isBot)updHud();
+ }
+ if(me){for(const t of[me,opp]){t.mesh.position.set(t.x,0,t.z);t.mesh.rotation.y=t.a;t.mesh.tur.rotation.y=t.ta-t.a;t.mesh.visible=t.hp>0}
+  const cx=me.x-Math.sin(me.ta)*9,cz=me.z-Math.cos(me.ta)*9;cam.position.set(cx,5.5,cz);cam.lookAt(me.x+Math.sin(me.ta)*10,1,me.z+Math.cos(me.ta)*10);}
+ else{cam.position.set(0,25,-35);cam.lookAt(0,0,0)}
+ renderer.render(scene,cam)}
+requestAnimationFrame(loop);
+</script></body></html>
