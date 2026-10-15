@@ -21,8 +21,6 @@ button{font-size:20px;padding:12px 28px;border-radius:10px;border:0;background:#
 <div id="menu"><h2>TANKS 1v1</h2><canvas id="pv" width="480" height="260" style="width:240px;height:130px;border-radius:10px;background:#1a2230;margin:4px 0"></canvas>
 <div>Выбери танк (пушка Railgun):</div>
 <div><div class="card sel" id="c_hornet"><b>Hornet</b><br>Railgun<br>HP 150, медленный</div><div class="card" id="c_wasp"><b>Wasp</b><br>Railgun<br>HP 100, быстрый</div></div>
-<div style="margin-top:8px">Скин:</div><div><div class="card sel" id="s_redgold" style="width:76px;padding:10px 6px"><b>XT</b></div><div class="card" id="s_camo" style="width:76px;padding:10px 6px"><b>LG</b></div><div class="card" id="s_silver" style="width:76px;padding:10px 6px"><b>2.0</b></div></div>
-<div style="margin-top:8px">Стрельба:</div><div id="rlrow"><div class="card" id="r_normal" style="width:76px;padding:10px 4px;font-size:13px"><b>Обычная</b><br>2 с</div><div class="card" id="r_fast" style="width:76px;padding:10px 4px;font-size:13px"><b>Быстрая</b><br>0.8 с</div><div class="card" id="r_very" style="width:76px;padding:10px 4px;font-size:13px"><b>Очень быстрая</b><br>0.4 с</div></div>
 <div id="mainBtns"><button id="mk">Создать комнату</button>
 <div style="margin-top:12px"><input id="code" maxlength="6" placeholder="КОД" autocapitalize="characters" autocomplete="off"><button id="jn" style="margin-top:0;margin-left:8px;padding:10px 16px;font-size:17px">Войти по коду</button></div>
 <button id="go" style="background:#555;color:#fff;font-size:16px;padding:9px 20px">Играть с ботом</button></div>
@@ -30,7 +28,7 @@ button{font-size:20px;padding:12px 28px;border-radius:10px;border:0;background:#
 <div id="llink" style="font-size:12px;color:#8cf;word-break:break-all;max-width:300px;margin:4px auto"></div>
 <div><button id="cp" style="font-size:16px;padding:9px 16px">Копировать ссылку</button> <button id="sh" style="font-size:16px;padding:9px 16px">Поделиться</button></div>
 <div id="lst" style="margin-top:10px">Ожидание соперника...</div><button id="lc" style="background:#555;color:#fff;font-size:15px;padding:8px 18px">Отмена</button></div>
-<div id="info" style="margin-top:10px;color:#aaa"></div><div style="margin-top:14px;font-size:11px;color:#777">Hornet&amp;Railgun Legacy by AVI3L (CC-BY-4.0)</div></div>
+<div id="info" style="margin-top:10px;color:#aaa"></div></div>
 <div id="msg" style="display:none;background:rgba(0,0,0,.6)"><h1 id="mt"></h1><button id="again">Ещё раз</button></div>
 <div id="hud"><div class="bar" style="left:8px"><i id="hp1" style="width:100%"></i></div><div class="bar" style="right:8px"><i id="hp2" style="width:100%;float:right"></i></div><div id="score"></div></div>
 <div id="hint" style="position:fixed;left:0;right:0;bottom:6px;text-align:center;font-size:12px;color:#fff9;display:none;pointer-events:none">WASD — движение · Z / X — башня влево / вправо · Пробел — огонь</div>
@@ -39,15 +37,12 @@ button{font-size:20px;padding:12px 28px;border-radius:10px;border:0;background:#
 import * as THREE from './three.module.min.js';
 import {GLTFLoader} from './lib/GLTFLoader.js';
 const TANKS={hornet:{hp:150,speed:5,turn:1.8,color:0x6b7a3a},wasp:{hp:100,speed:8.5,turn:2.8,color:0xc9a227}};
-let RELOAD=2000;const RLV={normal:2000,fast:800,very:400},RLN={normal:'Обычная',fast:'Быстрая',very:'Очень быстрая'};const DMG=50,RANGE=80,A=30,WIN=3,R=1.3;
+const RELOAD=2000;const DMG=50,RANGE=80,A=30,WIN=3,R=1.3;
 const params=new URLSearchParams(location.search);
 let room=(params.get('room')||'').toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,6);
-let myType='hornet',mySkin='redgold';const SKINS=['redgold','camo','silver'];
+let myType='hornet',mySkin='silver';
 const $=id=>document.getElementById(id);
-let myRl=matchMedia('(pointer:coarse)').matches?'very':'normal';
-const setRl=k=>{myRl=k;Object.keys(RLV).forEach(j=>$('r_'+j).classList.toggle('sel',j==k))};Object.keys(RLV).forEach(k=>$('r_'+k).onclick=()=>setRl(k));setRl(myRl);
 ['hornet','wasp'].forEach(k=>$('c_'+k).onclick=()=>{myType=k;pvRefresh();$('c_hornet').classList.toggle('sel',k=='hornet');$('c_wasp').classList.toggle('sel',k=='wasp')});
-SKINS.forEach(k=>$('s_'+k).onclick=()=>{mySkin=k;pvRefresh();SKINS.forEach(j=>$('s_'+j).classList.toggle('sel',j==k))});
 // scene
 const renderer=new THREE.WebGLRenderer({antialias:false});renderer.setPixelRatio(Math.min(devicePixelRatio,2));
 renderer.setSize(innerWidth,innerHeight);document.body.appendChild(renderer.domElement);
@@ -125,7 +120,7 @@ function makeProcTank(type,skin){if(type=='wasp')return makeWasp(skin||'redgold'
 
 // ---- real models (GLTF) with procedural fallback ----
 const MODELS={};const ML=new GLTFLoader();
-const MDEF={hornet:{url:'models/hornet/hornet_standard.gltf',len:3.7,mount:[1.35,.08]},wasp:{url:'models/wasp/wasp_standard.gltf',len:3.5,mount:[1.48,.82]},legacy:{url:'models/legacy/scene.gltf',len:3.7},tXT:{url:'models/turret/xt.gltf'},tLG:{url:'models/turret/legacy.gltf'}};
+const MDEF={hornet:{url:'models/hornet/hornet_standard.gltf',len:3.7,mount:[1.35,.08]},wasp:{url:'models/wasp/wasp_standard.gltf',len:3.5,mount:[1.48,.82]},tLG:{url:'models/turret/legacy.gltf'}};
 const loadP=Promise.all(Object.keys(MDEF).map(k=>new Promise(r=>{ML.load(MDEF[k].url,g=>{MODELS[k]=g.scene;r()},undefined,()=>r())}))).catch(()=>{});
 const TINT={wasp:{redgold:0xffcf80,camo:0x8a9560,silver:0xffffff},hornet:{redgold:0xffffff,camo:0xb8c070,silver:0xffffff}};
 function modelKey(type,skin){return type=='wasp'?'wasp':(skin=='silver'?'hornet':'legacy')}
@@ -157,7 +152,7 @@ const pvS=new THREE.Scene();pvS.background=new THREE.Color(0x1a2230);pvS.add(new
 const pvC=new THREE.PerspectiveCamera(35,240/130,.1,50);pvC.position.set(0,2.4,5.2);pvC.lookAt(0,.6,0);
 const pvGround=new THREE.Mesh(new THREE.CylinderGeometry(2.6,2.6,.05,32),new THREE.MeshLambertMaterial({color:0x2d3a4a}));pvGround.position.y=-.03;pvS.add(pvGround);
 let pvT=null,pvOn=true,pvK='';
-function pvRefresh(){const k=myType+'/'+mySkin+'/'+Object.keys(MODELS).length;if(k==pvK)return;pvK=k;
+function pvRefresh(){const k=myType+'/'+Object.keys(MODELS).length;if(k==pvK)return;pvK=k;
  if(pvT){pvS.remove(pvT)}try{pvT=makeTank(myType,mySkin);scene.remove(pvT);pvS.add(pvT);pvT.tur.rotation.y=0}catch(e){console.warn(e)}}
 loadP.then(pvRefresh);pvRefresh();
 let pvLast=performance.now();
@@ -209,22 +204,22 @@ fb.addEventListener('contextmenu',e=>e.preventDefault());fb.addEventListener('to
 const keys={};addEventListener('keydown',e=>{keys[e.code]=1;if(e.code=='Space')fireReq=true});addEventListener('keyup',e=>keys[e.code]=0);
 // flow
 const loadWait=()=>Promise.race([loadP,new Promise(r=>setTimeout(r,6000))]);
-function begin(i,oppType,isBot,oppSkin,rl){RELOAD=rl||RLV[myRl];pvStop();if(me){scene.remove(me.mesh);scene.remove(opp.mesh)}over=false;$('msg').style.display='none';idx=i;const sp=spawnPos(i),so=spawnPos(1-i);
- me=mk(myType,sp[0],sp[1],sp[2],mySkin);opp=mk(oppType,so[0],so[1],so[2],oppSkin||SKINS[Math.floor(Math.random()*3)]);opp.isBot=isBot;
+function begin(i,oppType,isBot){pvStop();if(me){scene.remove(me.mesh);scene.remove(opp.mesh)}over=false;$('msg').style.display='none';idx=i;const sp=spawnPos(i),so=spawnPos(1-i);
+ me=mk(myType,sp[0],sp[1],sp[2],mySkin);opp=mk(oppType,so[0],so[1],so[2],mySkin);opp.isBot=isBot;
  mode='play';$('menu').style.display='none';['hud','joy','fire','rl'].forEach(id=>$(id).style.display='block');if(matchMedia('(pointer:fine)').matches)$('hint').style.display='block';
  me.last=performance.now()+500;opp.last=performance.now()+2500;
- $('score').textContent=(isBot?'Бот':'Соперник')+': '+oppType+' Railgun · перезарядка '+(RELOAD/1000)+' с'; setTimeout(updHud,3000);updHud();}
+ $('score').textContent=(isBot?'Бот':'Соперник')+': '+oppType+' Railgun'; setTimeout(updHud,3000);updHud();}
 const CH='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 const genCode=()=>Array.from({length:5},()=>CH[Math.floor(Math.random()*CH.length)]).join('');
 const linkFor=c=>location.origin+location.pathname+'?room='+c;
 function showMenu(msg){$('mainBtns').style.display='block';$('lobby').style.display='none';$('info').textContent=msg||'';ws=null;busy=false}
 let busy=false;
-function startBot(){if(busy)return;busy=true;$('info').textContent='Загрузка…';loadWait().then(()=>{busy=false;begin(0,Math.random()<.5?'hornet':'wasp',true,null,RLV[myRl])})}
+function startBot(){if(busy)return;busy=true;$('info').textContent='Загрузка…';loadWait().then(()=>{busy=false;begin(0,Math.random()<.5?'hornet':'wasp',true)})}
 function connect(code,kind,tries=0){if(busy)return;busy=true;$('info').textContent='Подключение…';
  loadWait().then(()=>{let started=false,gotErr=false;
   try{ws=new WebSocket((location.protocol=='https:'?'wss://':'ws://')+location.host+'/?room='+code+'&mode='+kind)}catch(e){return showMenu('Нет связи с сервером')}
   const my=ws;
-  my.onopen=()=>{my.send(JSON.stringify({t:'hello',tank:myType,skin:mySkin,reload:RLV[myRl]}));
+  my.onopen=()=>{my.send(JSON.stringify({t:'hello',tank:myType}));
    $('mainBtns').style.display='none';$('lobby').style.display='block';$('info').textContent='';
    $('lcode').textContent=code;$('llink').textContent=linkFor(code);$('lst').textContent=kind=='create'?'Ожидание соперника...':'Подключаемся к комнате...';
    $('cp').style.display=$('sh').style.display=kind=='create'?'inline-block':'none';$('llink').style.display=kind=='create'?'block':'none'};
@@ -234,7 +229,7 @@ function connect(code,kind,tries=0){if(busy)return;busy=true;$('info').textConte
     showMenu(d.e=='full'?'Комната занята: там уже двое':d.e=='notfound'?'Комната не найдена. Проверь код':'Не удалось создать комнату, попробуй ещё раз')}
    else if(d.t=='joined'){$('lst').textContent='Соперник подключился, начинаем...'}
    else if(d.t=='wait'){$('lst').textContent='Ожидание соперника...'}
-   else if(d.t=='start'){started=true;busy=false;begin(d.idx,d.opp,false,d.oppSkin,d.reload)}
+   else if(d.t=='start'){started=true;busy=false;begin(d.idx,d.opp,false)}
    else if(d.t=='s'&&opp&&!over){opp.tx=d.x;opp.tz=d.z;opp.ta2=d.a;opp.tta=d.ta;opp.hp=d.hp}
    else if(d.t=='shot'&&opp&&!over){beam(d.ox,d.oz,d.dx,d.dz,d.len,0xff5577);if(me.hp>0&&hitCheck(d,me)){damage(me,DMG);if(me.hp<=0)died()}}
    else if(d.t=='died'&&!over){me.kills++;respawnOpp()}
