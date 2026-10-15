@@ -204,7 +204,7 @@ function drive(t,ix,iy,dt,T){const cl=(v,m)=>Math.max(-m,Math.min(m,v));
  const ox=t.x,oz=t.z,mv=t.v*dt;t.x+=Math.sin(t.a)*mv;t.z+=Math.cos(t.a)*mv;resolve(t);
  if(Math.abs(mv)>1e-4&&Math.hypot(t.x-ox,t.z-oz)<Math.abs(mv)*.6)t.v*=.5}
 function hitCheck(s,tg){const p=rayCircle(s.ox,s.oz,s.dx,s.dz,tg.x,tg.z,R);return p!==null&&p<=s.len}
-function damage(t,d){t.hp=Math.max(0,t.hp-d)}
+function damage(t,d){if(t.inv>performance.now())return;t.hp=Math.max(0,t.hp-d)}
 // input
 const inp={x:0,y:0};let fireReq=false,camPitch=.5;
 const joy=$('joy'),knob=$('knob');let jid=null,tid=null,tx=0,ty=0;
@@ -271,8 +271,8 @@ $('again').onclick=()=>{if(ws&&ws.readyState==1){ws.send(JSON.stringify({t:'rema
 if(room){$('code').value=room;$('info').textContent='Приглашение в комнату '+room+'. Выбери танк и скин, затем нажми «Войти по коду»'}
 function died(){opp.kills++;if(ws)ws.send(JSON.stringify({t:'died'}));if(opp.isBot){}
  if(opp.kills>=WIN)return end('Поражение 😢');
- const sp=spawnPos(idx);me.x=sp[0];me.z=sp[1];me.a=me.ta=sp[2];me.v=me.w=0;me.chargeT=0;me.hp=me.max;updHud()}
-function respawnOpp(){if(me.kills>=WIN)return end('ПОБЕДА! 🏆');if(opp.isBot){const sp=spawnPos(1-idx);opp.x=sp[0];opp.z=sp[1];opp.v=opp.w=0;opp.chargeT=0;opp.hp=opp.max;opp.last=performance.now()+2000}updHud()}
+ const sp=spawnPos(idx);me.x=sp[0];me.z=sp[1];me.a=me.ta=sp[2];me.v=me.w=0;me.chargeT=0;me.hp=me.max;me.buffs={};me.inv=performance.now()+3000;updHud()}
+function respawnOpp(){if(me.kills>=WIN)return end('ПОБЕДА! 🏆');opp.buffs={};opp.inv=performance.now()+3000;if(opp.isBot){const sp=spawnPos(1-idx);opp.x=sp[0];opp.z=sp[1];opp.v=opp.w=0;opp.chargeT=0;opp.hp=opp.max;opp.last=performance.now()+2000}updHud()}
 function end(t){over=true;$('mt').textContent=t;$('msg').style.display='flex'}
 function updHud(){$('hp1').style.width=100*me.hp/me.max+'%';$('hp2').style.width=100*opp.hp/opp.max+'%';
  $('score').textContent=`Ты ${me.kills} : ${opp.kills} ${opp.isBot?'Бот':'Соперник'} (до ${WIN})`}
@@ -343,7 +343,7 @@ function loop(now){requestAnimationFrame(loop);const dt=Math.min(.05,(now-prev)/
   if(!opp.isBot)updHud();
  }
  if(me){for(const t of[me,opp]){const rc=recoil(t,performance.now());t.mesh.position.set(t.x-(t===opp&&!opp.isBot?Math.sin(t.ta)*.12*rc:0),0,t.z-(t===opp&&!opp.isBot?Math.cos(t.ta)*.12*rc:0));if(t.mesh.rec)t.mesh.rec.position.z=-.25*rc;t.mesh.rotation.y=t.a;t.mesh.tur.rotation.y=t.ta-t.a;t.mesh.visible=t.hp>0}
-  for(const t of[me,opp]){updGlow(t,now);updAura(t,now);updIcons(t,now)}updDrops(now,dt);updBuffs(now);
+  for(const t of[me,opp]){if(t.inv>now)t.mesh.visible=Math.floor(now/120)%2==0;else if(t.inv){t.inv=0;t.mesh.visible=true}updGlow(t,now);updAura(t,now);updIcons(t,now)}updDrops(now,dt);updBuffs(now);
   const cp=Math.cos(camPitch),sp=Math.sin(camPitch),D=9,sx=Math.sin(me.ta),sz=Math.cos(me.ta);
   cam.position.set(Math.max(-A-4,Math.min(A+4,me.x-sx*cp*D)),1.2+sp*D,Math.max(-A-4,Math.min(A+4,me.z-sz*cp*D)));{const sk=performance.now()-shakeT;if(sk<300){const a=.14*(1-sk/300)**2;cam.position.x+=(Math.random()-.5)*a;cam.position.y+=(Math.random()-.5)*a;cam.position.z+=(Math.random()-.5)*a}}cam.lookAt(me.x+sx*5,1.2,me.z+sz*5);}
  else{cam.position.set(0,25,-35);cam.lookAt(0,0,0)}
