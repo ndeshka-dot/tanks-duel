@@ -20,12 +20,13 @@ button{font-size:20px;padding:12px 28px;border-radius:10px;border:0;background:#
 <div id="menu"><h2>TANKS 1v1</h2><div>Выбери танк (пушка Railgun):</div>
 <div><div class="card sel" id="c_hornet"><b>Hornet</b><br>Railgun<br>HP 150, медленный</div><div class="card" id="c_wasp"><b>Wasp</b><br>Railgun<br>HP 100, быстрый</div></div>
 <div style="margin-top:8px">Скин:</div><div><div class="card sel" id="s_redgold"><b>XT</b></div><div class="card" id="s_camo"><b>LG</b></div><div class="card" id="s_silver"><b>2.0</b></div></div>
-<button id="go">Играть</button><div id="info" style="margin-top:10px;color:#aaa"></div></div>
+<button id="go">Играть</button><div id="info" style="margin-top:10px;color:#aaa"></div><div style="margin-top:14px;font-size:11px;color:#777">Hornet&amp;Railgun Legacy by AVI3L (CC-BY-4.0)</div></div>
 <div id="msg" style="display:none;background:rgba(0,0,0,.6)"><h1 id="mt"></h1><button onclick="location.reload()">Ещё раз</button></div>
 <div id="hud"><div class="bar" style="left:8px"><i id="hp1" style="width:100%"></i></div><div class="bar" style="right:8px"><i id="hp2" style="width:100%;float:right"></i></div><div id="score"></div></div>
 <div id="joy"><div id="knob"></div></div><div id="fire">FIRE</div><div id="rl"><i id="rli"></i></div>
 <script type="module">
 import * as THREE from './three.module.min.js';
+import {GLTFLoader} from './lib/GLTFLoader.js';
 const TANKS={hornet:{hp:150,speed:5,turn:1.8,color:0x6b7a3a},wasp:{hp:100,speed:8.5,turn:2.8,color:0xc9a227}};
 const DMG=50,RELOAD=2000,RANGE=80,A=30,WIN=3,R=1.3;
 const params=new URLSearchParams(location.search);
@@ -90,7 +91,7 @@ function makeWasp(skin){const M=skinMats('w_'+skin),g=new THREE.Group(),W=2.3,L=
  part(tur,gBox,M.tur,0,.1,.3,.8,.22,.9);part(tur,gBox,M.plate,0,.22,.3,.4,.1,.5);
  part(tur,gBox,M.barrel,0,.12,1.5,.14,.14,2.0);part(tur,gBox,M.light,0,.12,2.52,.1,.1,.05);
  g.add(tur);g.tur=tur;g.hull=g;scene.add(g);return g;}
-function makeTank(type,skin){if(type=='wasp')return makeWasp(skin||'redgold');const M=skinMats(skin||'redgold'),g=new THREE.Group(),W=type=='hornet'?2.0:1.6,L=3.3,hw=W/2;
+function makeProcTank(type,skin){if(type=='wasp')return makeWasp(skin||'redgold');const M=skinMats(skin||'redgold'),g=new THREE.Group(),W=type=='hornet'?2.0:1.6,L=3.3,hw=W/2;
  const hull=new THREE.Group();g.add(hull);
  part(hull,gBox,M.hull,0,.62,0,W-.5,.5,L-.4);
  part(hull,gBox,M.hull,0,.55,L/2-.35,W-.5,.35,.9,.5);
@@ -109,6 +110,30 @@ function makeTank(type,skin){if(type=='wasp')return makeWasp(skin||'redgold');co
  for(const s of[-1,1]){part(tur,gBox,M.plate,s*.7,.18,0,.1,.3,1.1);part(tur,gBox,M.light,s*.45,.3,.8,.14,.1,.06);}
  part(tur,gBox,M.barrel,0,.2,1.9,.2,.2,2.2);part(tur,gBox,M.light,0,.2,3.02,.12,.12,.05);
  g.add(tur);g.tur=tur;g.hull=hull;scene.add(g);return g;}
+
+// ---- real models (GLTF) with procedural fallback ----
+const MODELS={};const ML=new GLTFLoader();
+const MDEF={hornet:{url:'models/hornet/hornet_standard.gltf',len:3.7,mount:[1.35,.08]},wasp:{url:'models/wasp/wasp_standard.gltf',len:3.5,mount:[1.48,.82]},legacy:{url:'models/legacy/scene.gltf',len:3.7}};
+const loadP=Promise.all(Object.keys(MDEF).map(k=>new Promise(r=>{ML.load(MDEF[k].url,g=>{MODELS[k]=g.scene;r()},undefined,()=>r())}))).catch(()=>{});
+const TINT={wasp:{redgold:0xffcf80,camo:0x8a9560,silver:0xffffff},hornet:{redgold:0xffffff,camo:0xb8c070,silver:0xffffff}};
+function modelKey(type,skin){return type=='wasp'?'wasp':(skin=='silver'?'hornet':'legacy')}
+function makeModelTank(type,skin){const key=modelKey(type,skin),src=MODELS[key];if(!src)return null;
+ const def=MDEF[key],tint=TINT[type][skin],g=new THREE.Group();
+ const root=src.clone(true);const rm=[];
+ root.traverse(o=>{if(/^(Light|Camera|Lamp)/.test(o.name))rm.push(o);if(o.isMesh){o.material=o.material.clone();if(!/track|#16/i.test(o.material.name))o.material.color.setHex(tint);}});
+ rm.forEach(o=>o.parent&&o.parent.remove(o));
+ let turNode=null;if(key=='legacy'){root.traverse(o=>{if(o.name=='turret')turNode=o});}
+ if(turNode)turNode.parent.remove(turNode);
+ const hb=new THREE.Box3().setFromObject(root),sz=hb.getSize(new THREE.Vector3()),sc=def.len/sz.z,yoff=-hb.min.y*sc;
+ const hi=new THREE.Group();hi.rotation.y=Math.PI;hi.scale.setScalar(sc);hi.position.y=yoff;hi.add(root);g.add(hi);
+ const tur=new THREE.Group();g.add(tur);
+ if(turNode){tur.position.y=yoff+1.35*sc;const ti=new THREE.Group();ti.rotation.y=Math.PI;ti.scale.setScalar(sc);turNode.position.set(0,-1.35,0);ti.add(turNode);tur.add(ti);
+  turNode.traverse(o=>{if(o.isMesh)o.material=o.material.clone()});if(tint!=0xffffff)turNode.traverse(o=>{if(o.isMesh)o.material.color.setHex(tint)});}
+ else{const M=skinMats(type=='wasp'?'w_'+skin:'silver');tur.position.set(0,yoff+def.mount[0]*sc,-def.mount[1]*sc);
+  part(tur,gBox,M.tur,0,.12,.0,1.0,.3,1.2);part(tur,gBox,M.plate,0,.32,-.1,.5,.14,.6);
+  part(tur,gBox,M.barrel,0,.14,1.7,.16,.16,2.2);part(tur,gBox,M.light,0,.14,2.8,.1,.1,.05);part(tur,gBox,M.light,.3,.3,.65,.1,.08,.05);}
+ g.tur=tur;g.hull=hi;scene.add(g);return g}
+function makeTank(type,skin){let m=null;try{m=makeModelTank(type,skin)}catch(e){console.warn(e)}return m||makeProcTank(type,skin)}
 // state: yaw 0 => facing +z. tank a = hull yaw, ta = turret world yaw
 function mk(type,x,z,a,skin){return{type,x,z,a,ta:a,hp:TANKS[type].hp,max:TANKS[type].hp,mesh:makeTank(type,skin),kills:0,last:0}}
 let me,opp,mode='menu',idx=0,ws,bot=null,over=false;
@@ -149,7 +174,7 @@ const tend=e=>{if(e.pointerId===tid)tid=null};cv.addEventListener('pointerup',te
 $('fire').addEventListener('pointerdown',e=>{e.stopPropagation();fireReq=true});
 const keys={};addEventListener('keydown',e=>{keys[e.code]=1;if(e.code=='Space')fireReq=true});addEventListener('keyup',e=>keys[e.code]=0);
 // flow
-$('go').onclick=()=>{$('go').disabled=true;startWait()};
+$('go').onclick=()=>{$('go').disabled=true;$('info').textContent='Загрузка моделей…';Promise.race([loadP,new Promise(r=>setTimeout(r,6000))]).then(startWait)};
 function begin(i,oppType,isBot,oppSkin){idx=i;const sp=spawnPos(i),so=spawnPos(1-i);
  me=mk(myType,sp[0],sp[1],sp[2],mySkin);opp=mk(oppType,so[0],so[1],so[2],oppSkin||SKINS[Math.floor(Math.random()*3)]);opp.isBot=isBot;
  mode='play';$('menu').style.display='none';['hud','joy','fire','rl'].forEach(id=>$(id).style.display='block');
