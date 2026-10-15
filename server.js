@@ -8,9 +8,9 @@ wss.on('connection',(ws,req)=>{
   if(r.length>=2){ws.send(JSON.stringify({t:'full'}));return ws.close();}
   r.push(ws);ws.tank='hornet';ws.alive=true;
   ws.on('message',m=>{let d;try{d=JSON.parse(m)}catch{return}
-    if(d.t==='hello'){ws.tank=d.tank==='wasp'?'wasp':'hornet';ws.hello=true;
+    if(d.t==='hello'){ws.tank=d.tank==='wasp'?'wasp':'hornet';ws.skin=['redgold','camo','silver'].includes(d.skin)?d.skin:'redgold';ws.hello=true;
       if(r.length===2&&r.every(w=>w.hello)&&!r.started){r.started=true;
-        r.forEach((w,i)=>w.send(JSON.stringify({t:'start',idx:i,opp:r[1-i].tank})));}
+        r.forEach((w,i)=>w.send(JSON.stringify({t:'start',idx:i,opp:r[1-i].tank,oppSkin:r[1-i].skin})));}
       return;}
     if(!r.started)return;
     const o=r.find(w=>w!==ws);if(o&&o.readyState===1)o.send(m.toString());});

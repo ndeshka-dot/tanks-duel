@@ -19,6 +19,7 @@ button{font-size:20px;padding:12px 28px;border-radius:10px;border:0;background:#
 </style></head><body>
 <div id="menu"><h2>TANKS 1v1</h2><div>Выбери танк (пушка Railgun):</div>
 <div><div class="card sel" id="c_hornet"><b>Hornet</b><br>Railgun<br>HP 150, медленный</div><div class="card" id="c_wasp"><b>Wasp</b><br>Railgun<br>HP 100, быстрый</div></div>
+<div style="margin-top:8px">Скин:</div><div><div class="card sel" id="s_redgold"><b>Red-Gold</b></div><div class="card" id="s_camo"><b>Yellow Camo</b></div><div class="card" id="s_silver"><b>Green-Silver</b></div></div>
 <button id="go">Играть</button><div id="info" style="margin-top:10px;color:#aaa"></div></div>
 <div id="msg" style="display:none;background:rgba(0,0,0,.6)"><h1 id="mt"></h1><button onclick="location.reload()">Ещё раз</button></div>
 <div id="hud"><div class="bar" style="left:8px"><i id="hp1" style="width:100%"></i></div><div class="bar" style="right:8px"><i id="hp2" style="width:100%;float:right"></i></div><div id="score"></div></div>
@@ -29,10 +30,11 @@ const TANKS={hornet:{hp:150,speed:5,turn:1.8,color:0x6b7a3a},wasp:{hp:100,speed:
 const DMG=50,RELOAD=2000,RANGE=80,A=30,WIN=3,R=1.3;
 const params=new URLSearchParams(location.search);
 let room=params.get('room');if(!room){room=Math.random().toString(36).slice(2,7);}
-let myType='hornet';
+let myType='hornet',mySkin='redgold';const SKINS=['redgold','camo','silver'];
 const $=id=>document.getElementById(id);
 $('info').textContent='Комната: '+room+' — отправь другу эту ссылку, если хочешь играть вдвоём';
 ['hornet','wasp'].forEach(k=>$('c_'+k).onclick=()=>{myType=k;$('c_hornet').classList.toggle('sel',k=='hornet');$('c_wasp').classList.toggle('sel',k=='wasp')});
+SKINS.forEach(k=>$('s_'+k).onclick=()=>{mySkin=k;SKINS.forEach(j=>$('s_'+j).classList.toggle('sel',j==k))});
 // scene
 const renderer=new THREE.WebGLRenderer({antialias:false});renderer.setPixelRatio(Math.min(devicePixelRatio,2));
 renderer.setSize(innerWidth,innerHeight);document.body.appendChild(renderer.domElement);
@@ -47,12 +49,47 @@ const boxes=[];
 function addBox(x,z,w,d,h=3,c=0x8a8a92){const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),new THREE.MeshLambertMaterial({color:c}));m.position.set(x,h/2,z);scene.add(m);boxes.push({x,z,hw:w/2,hd:d/2});}
 addBox(0,0,6,6);addBox(-12,8,4,8);addBox(12,-8,4,8);addBox(10,12,5,3);addBox(-10,-12,5,3);addBox(0,-18,10,2);addBox(0,18,10,2);
 [[0,-A-.5,A*2,1],[0,A+.5,A*2,1],[-A-.5,0,1,A*2],[A+.5,0,1,A*2]].forEach(w=>addBox(w[0],w[1],w[2],w[3],4,0x555560));
-function makeTank(type){const g=new THREE.Group(),c=TANKS[type].color,mat=new THREE.MeshLambertMaterial({color:c});
- const hull=new THREE.Mesh(new THREE.BoxGeometry(type=='hornet'?2.2:1.8,.8,3.2),mat);hull.position.y=.6;g.add(hull);
- const tur=new THREE.Group();tur.position.y=1.2;const t=new THREE.Mesh(new THREE.BoxGeometry(1.3,.6,1.5),new THREE.MeshLambertMaterial({color:0x333333}));tur.add(t);
- const b=new THREE.Mesh(new THREE.BoxGeometry(.25,.25,2.6),new THREE.MeshLambertMaterial({color:0x00b7ff}));b.position.z=1.8;tur.add(b);g.add(tur);g.tur=tur;g.hull=hull;scene.add(g);return g;}
+const SK={redgold:{base:'#9a1a1a',acc:'#d9a82b',dark:'#4a0b0b',light:0xffcc33,metal:0xd9a82b,turret:'#8a1515'},
+ camo:{base:'#d8c43a',acc:'#8a7a1c',dark:'#5a5010',light:0xffee66,metal:0x6b6a40,turret:'#cdb52e'},
+ silver:{base:'#3f6b2f',acc:'#c4cacc',dark:'#1f3a18',light:0x33f0ff,metal:0xc4cacc,turret:'#34592a'}};
+const skinCache={};
+function rnd(i){const x=Math.sin(i*127.1)*43758.5453;return x-Math.floor(x)}
+function skinMats(k){if(skinCache[k])return skinCache[k];const S=SK[k],N=128,cv=document.createElement('canvas');cv.width=cv.height=N;const c=cv.getContext('2d');
+ const mkTex=(base,kind)=>{c.fillStyle=base;c.fillRect(0,0,N,N);
+  if(kind=='camo'){const cols=[S.acc,S.dark,'#f0e060'];for(let i=0;i<46;i++){c.fillStyle=cols[i%3];c.globalAlpha=.75;c.beginPath();c.ellipse(rnd(i)*N,rnd(i+99)*N,6+rnd(i+7)*16,4+rnd(i+3)*10,rnd(i+5)*6,0,7);c.fill();}c.globalAlpha=1;}
+  else{const g=c.createLinearGradient(0,0,0,N);g.addColorStop(0,'rgba(255,255,255,.22)');g.addColorStop(.5,'rgba(0,0,0,0)');g.addColorStop(1,'rgba(0,0,0,.35)');c.fillStyle=g;c.fillRect(0,0,N,N);
+   c.strokeStyle=S.dark;c.lineWidth=2;c.strokeRect(3,3,N-6,N-6);c.beginPath();c.moveTo(0,N/2);c.lineTo(N,N/2);c.moveTo(N/2,0);c.lineTo(N/2,N);c.stroke();
+   c.strokeStyle=S.acc;c.lineWidth=5;c.beginPath();c.moveTo(0,N*.2);c.lineTo(N,N*.2);c.stroke();}
+  const t=new THREE.CanvasTexture((()=>{const n=document.createElement('canvas');n.width=n.height=N;n.getContext('2d').drawImage(cv,0,0);return n})());return t};
+ const kind=k=='camo'?'camo':'p';
+ const m={hull:new THREE.MeshLambertMaterial({map:mkTex(S.base,kind)}),tur:new THREE.MeshLambertMaterial({map:mkTex(S.turret,kind)}),
+  plate:new THREE.MeshLambertMaterial({color:S.metal}),dark:new THREE.MeshLambertMaterial({color:0x222426}),
+  track:new THREE.MeshLambertMaterial({color:0x2b2b2d}),light:new THREE.MeshBasicMaterial({color:S.light}),
+  barrel:new THREE.MeshLambertMaterial({color:k=='silver'?0xb9c0c2:0x3a3c40})};
+ return skinCache[k]=m}
+const gBox=new THREE.BoxGeometry(1,1,1),gCyl=new THREE.CylinderGeometry(.3,.3,.3,10);gCyl.rotateZ(Math.PI/2);
+function part(par,geo,mat,x,y,z,sx,sy,sz,rx){const m=new THREE.Mesh(geo,mat);m.position.set(x,y,z);m.scale.set(sx,sy,sz);if(rx)m.rotation.x=rx;par.add(m);return m}
+function makeTank(type,skin){const M=skinMats(skin||'redgold'),g=new THREE.Group(),W=type=='hornet'?2.0:1.6,L=3.3,hw=W/2;
+ const hull=new THREE.Group();g.add(hull);
+ part(hull,gBox,M.hull,0,.62,0,W-.5,.5,L-.4);
+ part(hull,gBox,M.hull,0,.55,L/2-.35,W-.5,.35,.9,.5);
+ part(hull,gBox,M.hull,0,.55,-L/2+.3,W-.5,.4,.7,-.4);
+ for(const s of[-1,1]){
+  part(hull,gBox,M.track,s*(hw-.15),.42,0,.5,.7,L,0);
+  part(hull,gBox,M.plate,s*(hw+.02),.78,0,.1,.38,L-.8);
+  part(hull,gBox,M.plate,s*(hw-.15),.8,L/2-.15,.5,.1,.7,.3);
+  for(let i=0;i<5;i++)part(hull,gCyl,M.dark,s*(hw+.02),.38,-L/2+.4+i*(L-.8)/4,.4,1.05,1.05);
+  part(hull,gBox,M.light,s*(W/2-.5),.72,L/2+.12,.22,.12,.06);}
+ if(skin=='redgold')for(const s of[-1,1])for(let i=0;i<3;i++)part(hull,gBox,M.plate,s*(hw+.1),.95+i*.1,-.3-i*.35,.06,.07,.9+i*.3,0);
+ const tur=new THREE.Group();tur.position.y=1.0;
+ part(tur,gBox,M.tur,0,.15,-.05,1.3,.4,1.5);
+ part(tur,gBox,M.tur,0,.42,-.2,.9,.2,1.0);
+ part(tur,gBox,M.plate,0,.2,.8,.7,.3,.3);
+ for(const s of[-1,1]){part(tur,gBox,M.plate,s*.7,.18,0,.1,.3,1.1);part(tur,gBox,M.light,s*.45,.3,.8,.14,.1,.06);}
+ part(tur,gBox,M.barrel,0,.2,1.9,.2,.2,2.2);part(tur,gBox,M.light,0,.2,3.02,.12,.12,.05);
+ g.add(tur);g.tur=tur;g.hull=hull;scene.add(g);return g;}
 // state: yaw 0 => facing +z. tank a = hull yaw, ta = turret world yaw
-function mk(type,x,z,a){return{type,x,z,a,ta:a,hp:TANKS[type].hp,max:TANKS[type].hp,mesh:makeTank(type),kills:0,last:0}}
+function mk(type,x,z,a,skin){return{type,x,z,a,ta:a,hp:TANKS[type].hp,max:TANKS[type].hp,mesh:makeTank(type,skin),kills:0,last:0}}
 let me,opp,mode='menu',idx=0,ws,bot=null,over=false;
 function spawnPos(i){return i==0?[0,-24,0]:[0,24,Math.PI]}
 function resolve(t){t.x=Math.max(-A+R,Math.min(A-R,t.x));t.z=Math.max(-A+R,Math.min(A-R,t.z));
@@ -92,8 +129,8 @@ $('fire').addEventListener('pointerdown',e=>{e.stopPropagation();fireReq=true});
 const keys={};addEventListener('keydown',e=>{keys[e.code]=1;if(e.code=='Space')fireReq=true});addEventListener('keyup',e=>keys[e.code]=0);
 // flow
 $('go').onclick=()=>{$('go').disabled=true;startWait()};
-function begin(i,oppType,isBot){idx=i;const sp=spawnPos(i),so=spawnPos(1-i);
- me=mk(myType,sp[0],sp[1],sp[2]);opp=mk(oppType,so[0],so[1],so[2]);opp.isBot=isBot;
+function begin(i,oppType,isBot,oppSkin){idx=i;const sp=spawnPos(i),so=spawnPos(1-i);
+ me=mk(myType,sp[0],sp[1],sp[2],mySkin);opp=mk(oppType,so[0],so[1],so[2],oppSkin||SKINS[Math.floor(Math.random()*3)]);opp.isBot=isBot;
  mode='play';$('menu').style.display='none';['hud','joy','fire','rl'].forEach(id=>$(id).style.display='block');
  me.last=performance.now()+500;opp.last=performance.now()+2500;
  $('score').textContent=(isBot?'Бот':'Соперник')+': '+oppType+' Railgun'; setTimeout(updHud,3000);updHud();}
@@ -101,9 +138,9 @@ function startWait(){$('info').textContent='Ждём соперника (5 с)�
  try{ws=new WebSocket((location.protocol=='https:'?'wss://':'ws://')+location.host+'/?room='+room)}catch(e){}
  const fb=setTimeout(()=>{if(!started){started=true;if(ws)ws.onclose=null,ws.close();ws=null;begin(0,Math.random()<.5?'hornet':'wasp',true)}},5000);
  if(!ws)return;
- ws.onopen=()=>ws.send(JSON.stringify({t:'hello',tank:myType}));
+ ws.onopen=()=>ws.send(JSON.stringify({t:'hello',tank:myType,skin:mySkin}));
  ws.onmessage=ev=>{const d=JSON.parse(ev.data);
-  if(d.t=='start'&&!started){started=true;clearTimeout(fb);begin(d.idx,d.opp,false);}
+  if(d.t=='start'&&!started){started=true;clearTimeout(fb);begin(d.idx,d.opp,false,d.oppSkin);}
   else if(d.t=='full'){$('info').textContent='Комната занята, играем с ботом'}
   else if(d.t=='s'&&opp){opp.tx=d.x;opp.tz=d.z;opp.ta2=d.a;opp.tta=d.ta;opp.hp=d.hp}
   else if(d.t=='shot'&&opp){beam(d.ox,d.oz,d.dx,d.dz,d.len,0xff5577);if(me.hp>0&&hitCheck(d,me)){damage(me,DMG);if(me.hp<=0)died()}}
