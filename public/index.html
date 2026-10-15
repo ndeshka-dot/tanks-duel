@@ -113,7 +113,7 @@ function makeProcTank(type,skin){if(type=='wasp')return makeWasp(skin||'redgold'
 
 // ---- real models (GLTF) with procedural fallback ----
 const MODELS={};const ML=new GLTFLoader();
-const MDEF={hornet:{url:'models/hornet/hornet_standard.gltf',len:3.7,mount:[1.35,.08]},wasp:{url:'models/wasp/wasp_standard.gltf',len:3.5,mount:[1.48,.82]},legacy:{url:'models/legacy/scene.gltf',len:3.7}};
+const MDEF={hornet:{url:'models/hornet/hornet_standard.gltf',len:3.7,mount:[1.35,.08]},wasp:{url:'models/wasp/wasp_standard.gltf',len:3.5,mount:[1.48,.82]},legacy:{url:'models/legacy/scene.gltf',len:3.7},tXT:{url:'models/turret/xt.gltf'},tLG:{url:'models/turret/legacy.gltf'}};
 const loadP=Promise.all(Object.keys(MDEF).map(k=>new Promise(r=>{ML.load(MDEF[k].url,g=>{MODELS[k]=g.scene;r()},undefined,()=>r())}))).catch(()=>{});
 const TINT={wasp:{redgold:0xffcf80,camo:0x8a9560,silver:0xffffff},hornet:{redgold:0xffffff,camo:0xb8c070,silver:0xffffff}};
 function modelKey(type,skin){return type=='wasp'?'wasp':(skin=='silver'?'hornet':'legacy')}
@@ -129,9 +129,13 @@ function makeModelTank(type,skin){const key=modelKey(type,skin),src=MODELS[key];
  const tur=new THREE.Group();g.add(tur);
  if(turNode){tur.position.y=yoff+1.35*sc;const ti=new THREE.Group();ti.rotation.y=Math.PI;ti.scale.setScalar(sc);turNode.position.set(0,-1.35,0);ti.add(turNode);tur.add(ti);
   turNode.traverse(o=>{if(o.isMesh)o.material=o.material.clone()});if(tint!=0xffffff)turNode.traverse(o=>{if(o.isMesh)o.material.color.setHex(tint)});}
- else{const M=skinMats(type=='wasp'?'w_'+skin:'silver');tur.position.set(0,yoff+def.mount[0]*sc,-def.mount[1]*sc);
+ else{tur.position.set(0,yoff+def.mount[0]*sc-.05,-def.mount[1]*sc);
+  const ts=MODELS[skin=='redgold'?'tXT':'tLG'];
+  if(ts){const t=ts.clone(true),mz=t.getObjectByName('muzzle'),k=2.8/(mz?mz.position.z:4.13);t.scale.setScalar(k);t.traverse(o=>{if(o.isMesh)o.material=o.material.clone()});tur.add(t);g.muzzleD=tur.position.z+(mz?mz.position.z:4.13)*k;}
+  else{const M=skinMats(type=='wasp'?'w_'+skin:'silver');
   part(tur,gBox,M.tur,0,.12,.0,1.0,.3,1.2);part(tur,gBox,M.plate,0,.32,-.1,.5,.14,.6);
-  part(tur,gBox,M.barrel,0,.14,1.7,.16,.16,2.2);part(tur,gBox,M.light,0,.14,2.8,.1,.1,.05);part(tur,gBox,M.light,.3,.3,.65,.1,.08,.05);}
+  part(tur,gBox,M.barrel,0,.14,1.7,.16,.16,2.2);part(tur,gBox,M.light,0,.14,2.8,.1,.1,.05);part(tur,gBox,M.light,.3,.3,.65,.1,.08,.05);}}
+ if(turNode)g.muzzleD=3.87*sc;
  g.tur=tur;g.hull=hi;scene.add(g);return g}
 function makeTank(type,skin){let m=null;try{m=makeModelTank(type,skin)}catch(e){console.warn(e)}return m||makeProcTank(type,skin)}
 // state: yaw 0 => facing +z. tank a = hull yaw, ta = turret world yaw
@@ -152,7 +156,7 @@ function beam(ox,oz,dx,dz,len,col){const g=new THREE.CylinderGeometry(.08,.08,le
  const m=new THREE.Mesh(g,new THREE.MeshBasicMaterial({color:col,transparent:true,opacity:.9}));m.position.set(ox,1.5,oz);m.lookAt(ox+dx,1.5,oz+dz);scene.add(m);beams.push({m,t:0});}
 function wallDist(ox,oz,dx,dz){let best=RANGE;for(const b of boxes){const t=rayBox(ox,oz,dx,dz,b);if(t!==null&&t<best)best=t}return best}
 // shooter fires: returns hit?
-function shoot(sh,tg,send){const dx=Math.sin(sh.ta),dz=Math.cos(sh.ta),ox=sh.x+dx*2.5,oz=sh.z+dz*2.5;
+function shoot(sh,tg,send){const dx=Math.sin(sh.ta),dz=Math.cos(sh.ta),MD=sh.mesh&&sh.mesh.muzzleD||2.5,ox=sh.x+dx*MD,oz=sh.z+dz*MD;
  const len=wallDist(ox,oz,dx,dz);beam(ox,oz,dx,dz,len,sh===me?0x00e5ff:0xff5577);
  if(send&&ws)ws.send(JSON.stringify({t:'shot',ox,oz,dx,dz,len}));
  return{ox,oz,dx,dz,len}}
