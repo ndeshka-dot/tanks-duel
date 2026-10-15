@@ -31,6 +31,7 @@ button{font-size:20px;padding:12px 28px;border-radius:10px;border:0;background:#
 <div id="lst" style="margin-top:10px">Ожидание соперника...</div><button id="lc" style="background:#555;color:#fff;font-size:15px;padding:8px 18px">Отмена</button></div>
 <div id="info" style="margin-top:10px;color:#aaa"></div></div>
 <div id="msg" style="display:none;background:rgba(0,0,0,.6)"><h1 id="mt"></h1><button id="again">Ещё раз</button></div>
+<div id="buffs" style="position:fixed;top:44px;left:0;right:0;text-align:center;font-size:14px;pointer-events:none;z-index:5"></div>
 <div id="hud"><div class="bar" style="left:8px"><i id="hp1" style="width:100%"></i></div><div class="bar" style="right:8px"><i id="hp2" style="width:100%;float:right"></i></div><div id="score"></div></div>
 <div id="hint" style="position:fixed;left:0;right:0;bottom:6px;text-align:center;font-size:12px;color:#fff9;display:none;pointer-events:none">WASD — движение · Z / X — башня · R / F — камера вверх / вниз · Пробел — огонь (заряд 0.5 с)</div>
 <div id="joy"><div id="knob"></div></div><div id="fire">FIRE</div><div id="rl"><i id="rli"></i></div>
@@ -149,7 +150,7 @@ let glowTex=null;
 function addGlow(g){if(!glowTex){const c=document.createElement('canvas');c.width=c.height=64;const x=c.getContext('2d'),gr=x.createRadialGradient(32,32,0,32,32,32);gr.addColorStop(0,'rgba(255,255,255,1)');gr.addColorStop(.3,'rgba(160,240,255,.7)');gr.addColorStop(1,'rgba(0,150,255,0)');x.fillStyle=gr;x.fillRect(0,0,64,64);glowTex=new THREE.CanvasTexture(c)}
  if(!g.muz)g.muz={px:0,pz:0,tip:2.8,y:1.15};
  const mk=(sz,col)=>{const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:glowTex,color:col,transparent:true,opacity:0,blending:THREE.AdditiveBlending,depthWrite:false,depthTest:false}));sp.scale.set(sz,sz,1);sp.renderOrder=10;return sp};
- const gl=new THREE.Group();gl.position.set(0,g.muz.y-g.tur.position.y,g.muz.tip);const halo=mk(1.6,0x55ddff),core=mk(.7,0xffffff);gl.add(halo,core);gl.visible=false;gl.halo=halo;gl.core=core;g.tur.add(gl);g.glow=gl}
+ const gl=new THREE.Group();gl.position.set(0,g.muz.y-g.tur.position.y,g.muz.tip);const halo=mk(1.6,0x55ddff),core=mk(.7,0xffffff);gl.add(halo,core);gl.visible=false;gl.halo=halo;gl.core=core;g.tur.add(gl);g.glow=gl;const au=mk(5.5,0xffffff);au.position.y=.7;au.visible=false;au.material.depthTest=true;g.add(au);g.aura=au}
 function updGlow(t,now){const g=t.mesh.glow;if(!g)return;let sc=0,op=0;
  if(t.chargeT){const f=Math.min(1,(now-t.chargeT)/CHARGE);sc=.2+1.5*f*f;op=.2+.8*f}
  else if(now-t.flashT<220){const f=(now-t.flashT)/220;sc=.5+2.4*(1-f);op=1-f}
@@ -171,7 +172,7 @@ function pvLoop(now){if(!pvOn)return;requestAnimationFrame(pvLoop);const dt=Math
 requestAnimationFrame(pvLoop);
 function pvStop(){pvOn=false;pvS.remove(pvT);pvR.dispose();pvCv.style.display='none'}
 // state: yaw 0 => facing +z. tank a = hull yaw, ta = turret world yaw
-function mk(type,x,z,a,paint){return{type,x,z,a,ta:a,hp:TANKS[type].hp,max:TANKS[type].hp,mesh:makeTank(type,paint),kills:0,last:0,v:0,w:0,chargeT:0,flashT:0}}
+function mk(type,x,z,a,paint){return{type,x,z,a,ta:a,hp:TANKS[type].hp,max:TANKS[type].hp,mesh:makeTank(type,paint),kills:0,last:0,v:0,w:0,chargeT:0,flashT:0,buffs:{}}}
 let me,opp,mode='menu',idx=0,ws,bot=null,over=false;
 function spawnPos(i){return i==0?[0,-24,0]:[0,24,Math.PI]}
 function resolve(t){t.x=Math.max(-A+R,Math.min(A-R,t.x));t.z=Math.max(-A+R,Math.min(A-R,t.z));
@@ -194,10 +195,10 @@ function muzzlePos(t){const m=t.mesh.muz||{px:0,pz:0,tip:2.5,y:1.5},c=Math.cos(t
  return[t.x+m.px*c+m.pz*sn+dx*m.tip,m.y,t.z-m.px*sn+m.pz*c+dz*m.tip,dx,dz]}
 function shoot(sh,tg,send){const[ox,oy,oz,dx,dz]=muzzlePos(sh);
  const len=wallDist(ox,oz,dx,dz);beam(ox,oz,dx,dz,len,sh===me?0x00e5ff:0xff5577,oy);sh.flashT=performance.now();sh.chargeT=0;sh.v-=2.5*Math.cos(sh.ta-sh.a);if(sh===me)shakeT=sh.flashT;
- if(send&&ws&&ws.readyState==1)ws.send(JSON.stringify({t:'shot',ox,oy,oz,dx,dz,len}));
+ if(send&&ws&&ws.readyState==1)ws.send(JSON.stringify({t:'shot',ox,oy,oz,dx,dz,len,dm:(sh.buffs.damage>performance.now())?2:1}));
  return{ox,oz,dx,dz,len}}
 function drive(t,ix,iy,dt,T){const cl=(v,m)=>Math.max(-m,Math.min(m,v));
- const tv=cl(iy,1)*T.speed*(iy<0?.6:1);let rate=T.acc;if(Math.abs(tv)<.01)rate=T.drag;else if(t.v*tv<0||Math.abs(tv)<Math.abs(t.v))rate=T.acc*1.6;
+ const sm=(t.buffs&&t.buffs.speed>performance.now())?2:1;const tv=cl(iy,1)*T.speed*sm*(iy<0?.6:1);let rate=T.acc*sm;if(Math.abs(tv)<.01)rate=T.drag*sm;else if(t.v*tv<0||Math.abs(tv)<Math.abs(t.v))rate=T.acc*sm*1.6;
  t.v+=cl(tv-t.v,rate*dt);
  const tw=-ix*T.turn*(iy<-.1?-1:1);t.w+=cl(tw-t.w,T.tacc*dt);t.a+=t.w*dt;
  const ox=t.x,oz=t.z,mv=t.v*dt;t.x+=Math.sin(t.a)*mv;t.z+=Math.cos(t.a)*mv;resolve(t);
@@ -225,7 +226,7 @@ const keys={};addEventListener('keydown',e=>{keys[e.code]=1;if(e.code=='Space')f
 // flow
 ['',...PAINTS].forEach(k=>$('pt_'+k).onclick=()=>{myPaint=k;['',...PAINTS].forEach(j=>$('pt_'+j).classList.toggle('sel',j==k));pvRefresh()});
 const loadWait=()=>Promise.race([loadP,new Promise(r=>setTimeout(r,6000))]);
-function begin(i,oppType,isBot,oppPaint){pvStop();if(me){scene.remove(me.mesh);scene.remove(opp.mesh)}over=false;$('msg').style.display='none';idx=i;const sp=spawnPos(i),so=spawnPos(1-i);
+function begin(i,oppType,isBot,oppPaint){drops.forEach(d=>scene.remove(d.sp));drops=[];nextDropAt=performance.now()+4000;pvStop();if(me){scene.remove(me.mesh);scene.remove(opp.mesh)}over=false;$('msg').style.display='none';idx=i;const sp=spawnPos(i),so=spawnPos(1-i);
  me=mk(myType,sp[0],sp[1],sp[2],myPaint);opp=mk(oppType,so[0],so[1],so[2],isBot?(Math.random()<.5?'':PAINTS[Math.floor(Math.random()*6)]):(oppPaint||''));opp.isBot=isBot;
  mode='play';$('menu').style.display='none';['hud','joy','fire','rl'].forEach(id=>$(id).style.display='block');if(matchMedia('(pointer:fine)').matches)$('hint').style.display='block';
  me.last=performance.now()+500;opp.last=performance.now()+2500;
@@ -252,8 +253,11 @@ function connect(code,kind,tries=0){if(busy)return;busy=true;$('info').textConte
    else if(d.t=='wait'){$('lst').textContent='Ожидание соперника...'}
    else if(d.t=='start'){started=true;busy=false;begin(d.idx,d.opp,false,d.oppPaint)}
    else if(d.t=='s'&&opp&&!over){opp.tx=d.x;opp.tz=d.z;opp.ta2=d.a;opp.tta=d.ta;opp.hp=d.hp}
-   else if(d.t=='shot'&&opp&&!over){beam(d.ox,d.oz,d.dx,d.dz,d.len,0xff5577,d.oy||1.5);opp.chargeT=0;opp.flashT=performance.now();if(me.hp>0&&hitCheck(d,me)){damage(me,DMG);if(me.hp<=0)died()}}
+   else if(d.t=='shot'&&opp&&!over){beam(d.ox,d.oz,d.dx,d.dz,d.len,0xff5577,d.oy||1.5);opp.chargeT=0;opp.flashT=performance.now();if(me.hp>0&&hitCheck(d,me)){damage(me,DMG*(d.dm||1)*(me.buffs.defense>performance.now()?.5:1));if(me.hp<=0)died()}}
    else if(d.t=='charge'&&opp&&!over){opp.chargeT=performance.now()}
+   else if(d.t=='drop'){addDrop(d.id,d.zone)}
+   else if(d.t=='dropgone'){removeDrop(d.id)}
+   else if(d.t=='taken'){removeDrop(d.id);if(me&&opp){const nw=performance.now();applyBuff(d.by==idx?me:opp,d.type,nw)}}
    else if(d.t=='died'&&!over){me.kills++;respawnOpp()}
    else if(d.t=='left'){if(mode=='play'){if(!over)end('Соперник вышел. Победа!');else $('mt').textContent='Соперник вышел'}else $('lst').textContent='Соперник вышел. Ожидание...'}};
   my.onclose=()=>{if(ws!==my)return;busy=false;if(gotErr)return;if(mode=='play'&&!over)end('Связь потеряна');else if(mode!='play')showMenu('Связь потеряна')}})}
@@ -276,10 +280,39 @@ function botAI(dt,now){const o=opp,dx=me.x-o.x,dz=me.z-o.z,d=Math.hypot(dx,dz),w
  let da=Math.atan2(Math.sin(want-o.ta),Math.cos(want-o.ta));o.ta+=Math.max(-1.5*dt,Math.min(1.5*dt,da));
  let mvx=0,mvz=0;
  if(d>14){mvx=dx/d;mvz=dz/d}else if(d<8){mvx=-dx/d;mvz=-dz/d}else{mvx=dz/d;mvz=-dx/d}
+ {const bd=nearestDrop(o);if(bd&&bd.d<22&&bd.d>.5){mvx=(bd.x-o.x)/bd.d;mvz=(bd.z-o.z)/bd.d}}
  const diff=Math.atan2(Math.sin(Math.atan2(mvx,mvz)-o.a),Math.cos(Math.atan2(mvx,mvz)-o.a));
  drive(o,-Math.max(-1,Math.min(1,diff*2.5)),Math.abs(diff)<1.2?.6:0,dt,TANKS[o.type]);
- if(o.chargeT){if(now-o.chargeT>=CHARGE&&o.hp>0){o.last=now;o.ta+=(Math.random()-.5)*.12;const s=shoot(o,me,false);if(me.hp>0&&hitCheck(s,me)){damage(me,DMG);if(me.hp<=0)died()}updHud()}}
+ if(o.chargeT){if(now-o.chargeT>=CHARGE&&o.hp>0){o.last=now;o.ta+=(Math.random()-.5)*.12;const s=shoot(o,me,false);if(me.hp>0&&hitCheck(s,me)){damage(me,dmgFor(o,me));if(me.hp<=0)died()}updHud()}}
  else if(now-o.last>RELOAD+800&&Math.abs(da)<.12&&me.hp>0)o.chargeT=now}
+// ---- bonus drops ----
+const ZONES=[{t:'speed',x:-20,z:-4},{t:'repair',x:20,z:4},{t:'defense',x:-6,z:10},{t:'damage',x:6,z:-10}];
+const BCOL={speed:0xffee33,defense:0xffe9a8,damage:0xff3322},BN={speed:'Ускорение',defense:'Защита',damage:'Урон'},BUFFMS=10000;
+const TLd=new THREE.TextureLoader(),BT={};['speed','repair','defense','damage'].forEach(k=>{BT[k]={box:TLd.load('bonus/'+k+'_box.png'),zone:TLd.load('bonus/'+k+'_zone.png')};BT[k].box.colorSpace=BT[k].zone.colorSpace=THREE.SRGBColorSpace});
+const zoneMeshes=ZONES.map(z=>{const m=new THREE.Mesh(new THREE.PlaneGeometry(3.4,3.4),new THREE.MeshBasicMaterial({map:BT[z.t].zone,transparent:true,depthWrite:false}));m.rotation.x=-Math.PI/2;m.position.set(z.x,.06,z.z);scene.add(m);return m});
+let drops=[],nextDropAt=0,localId=0;
+function addDrop(id,zone){if(drops.some(d=>d.id==id))return;const z=ZONES[zone],sp=new THREE.Sprite(new THREE.SpriteMaterial({map:BT[z.t].box,transparent:true}));sp.scale.set(1.9,1.9,1);sp.position.set(z.x,26,z.z);scene.add(sp);drops.push({id,zone,sp,t0:performance.now(),pend:0})}
+function removeDrop(id){const i=drops.findIndex(d=>d.id==id);if(i>=0){scene.remove(drops[i].sp);drops.splice(i,1)}}
+function dmgFor(sh,tg){const n=performance.now();return DMG*(sh.buffs.damage>n?2:1)*(tg.buffs.defense>n?.5:1)}
+function applyBuff(t,type,now){if(type=='repair'){t.hp=Math.min(t.max,t.hp+t.max*.5);updHud()}else t.buffs[type]=now+BUFFMS}
+function takeDrop(t,d,now){if(ws){if(now-d.pend>800){d.pend=now;if(ws.readyState==1)ws.send(JSON.stringify({t:'pickup',id:d.id}))}}else{removeDrop(d.id);applyBuff(t,ZONES[d.zone].t,now)}}
+function updDrops(now,dt){
+ zoneMeshes.forEach((m,i)=>{const k=.5+.5*Math.sin(now/350+i);m.material.opacity=.55+.4*k;m.scale.setScalar(1+.06*k)});
+ if(!ws&&opp&&opp.isBot&&now>nextDropAt){const free=[0,1,2,3].filter(z=>!drops.some(d=>d.zone==z));if(free.length)addDrop(++localId,free[Math.floor(Math.random()*free.length)]);nextDropAt=now+15000+Math.random()*5000}
+ for(let i=drops.length-1;i>=0;i--){const d=drops[i],ft=(now-d.t0)/1000,z=ZONES[d.zone];
+  if(!ws&&ft>30){removeDrop(d.id);continue}
+  const f=Math.min(1,ft/1.3);d.sp.position.y=1+25*(1-f*f)+(f>=1?.15*Math.sin(ft*3):0);
+  if(f<1)continue;
+  if(me.hp>0&&Math.hypot(me.x-z.x,me.z-z.z)<1.9)takeDrop(me,d,now);
+  else if(!ws&&opp.isBot&&opp.hp>0&&Math.hypot(opp.x-z.x,opp.z-z.z)<1.9){removeDrop(d.id);applyBuff(opp,z.t,now)}}
+}
+let buffHtml='';
+function updBuffs(now){let h='';for(const k of['speed','defense','damage']){const r=me.buffs[k]-now;if(r>0)h+=`<span style="margin:0 6px;background:#0008;border-radius:8px;padding:2px 8px;color:#${BCOL[k].toString(16).padStart(6,'0')}"><img src="bonus/${k}_zone.png" width="22" style="vertical-align:middle"> ${Math.ceil(r/1000)}</span>`}
+ if(h!==buffHtml){buffHtml=h;$('buffs').innerHTML=h}}
+function updAura(t,now){const a=t.mesh.aura;if(!a)return;let r=0,g=0,b=0,n=0;for(const k in BCOL){if(t.buffs[k]>now){const c=new THREE.Color(BCOL[k]);r+=c.r;g+=c.g;b+=c.b;n++}}
+ a.visible=n>0&&t.hp>0;if(n){a.material.color.setRGB(r/n,g/n,b/n);a.material.opacity=.45+.25*Math.sin(now/180)}}
+function nearestDrop(o){let best=null,bd=1e9;for(const d of drops){const z=ZONES[d.zone],dd=Math.hypot(z.x-o.x,z.z-o.z);if(dd<bd&&(now0()-d.t0)>1300){bd=dd;best={x:z.x,z:z.z,d:dd}}}return best}
+const now0=()=>performance.now();
 let prev=performance.now(),sendT=0;
 function loop(now){requestAnimationFrame(loop);const dt=Math.min(.05,(now-prev)/1000);prev=now;
  for(let i=beams.length-1;i>=0;i--){const b=beams[i];b.t+=dt;b.m.material.opacity=Math.max(0,.9-b.t*2.5);if(b.t>.4){scene.remove(b.m);beams.splice(i,1)}}
@@ -291,7 +324,7 @@ function loop(now){requestAnimationFrame(loop);const dt=Math.min(.05,(now-prev)/
   const wantFire=fireReq||fireHeld||keys.Space;
   if(me.hp<=0)me.chargeT=0;
   if(me.chargeT){const f=Math.min(1,(now-me.chargeT)/CHARGE);$('rl').classList.add('ch');$('rli').style.width=f*100+'%';
-   if(f>=1){me.last=now;const s=shoot(me,opp,true);if(hitCheck(s,opp)&&opp.isBot){damage(opp,DMG);if(opp.hp<=0){me.kills++;respawnOpp()}updHud()}}}
+   if(f>=1){me.last=now;const s=shoot(me,opp,true);if(hitCheck(s,opp)&&opp.isBot){damage(opp,dmgFor(me,opp));if(opp.hp<=0){me.kills++;respawnOpp()}updHud()}}}
   else{const rl=Math.min(1,(now-me.last)/RELOAD);$('rl').classList.remove('ch');$('rli').style.width=rl*100+'%';
    if(wantFire&&rl>=1&&me.hp>0){me.chargeT=now;if(ws&&ws.readyState==1)ws.send(JSON.stringify({t:'charge'}))}}
   fireReq=false;
@@ -300,7 +333,7 @@ function loop(now){requestAnimationFrame(loop);const dt=Math.min(.05,(now-prev)/
   if(!opp.isBot)updHud();
  }
  if(me){for(const t of[me,opp]){const rc=recoil(t,performance.now());t.mesh.position.set(t.x-(t===opp&&!opp.isBot?Math.sin(t.ta)*.12*rc:0),0,t.z-(t===opp&&!opp.isBot?Math.cos(t.ta)*.12*rc:0));if(t.mesh.rec)t.mesh.rec.position.z=-.25*rc;t.mesh.rotation.y=t.a;t.mesh.tur.rotation.y=t.ta-t.a;t.mesh.visible=t.hp>0}
-  for(const t of[me,opp])updGlow(t,now);
+  for(const t of[me,opp]){updGlow(t,now);updAura(t,now)}updDrops(now,dt);updBuffs(now);
   const cp=Math.cos(camPitch),sp=Math.sin(camPitch),D=9,sx=Math.sin(me.ta),sz=Math.cos(me.ta);
   cam.position.set(Math.max(-A-4,Math.min(A+4,me.x-sx*cp*D)),1.2+sp*D,Math.max(-A-4,Math.min(A+4,me.z-sz*cp*D)));{const sk=performance.now()-shakeT;if(sk<300){const a=.14*(1-sk/300)**2;cam.position.x+=(Math.random()-.5)*a;cam.position.y+=(Math.random()-.5)*a;cam.position.z+=(Math.random()-.5)*a}}cam.lookAt(me.x+sx*5,1.2,me.z+sz*5);}
  else{cam.position.set(0,25,-35);cam.lookAt(0,0,0)}
