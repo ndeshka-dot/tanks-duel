@@ -265,18 +265,24 @@ let shakeT=0,shakeA=.14;
 function hop(t,now){const f=(now-t.flashT)/420;return(f>=0&&f<1)?Math.sin(Math.PI*Math.pow(f,.7)):0}
 const YAX=new THREE.Vector3(0,1,0),TAX=new THREE.Vector3(),TQ=new THREE.Quaternion();
 /* KNOCKBACK: real push of the hit tank. KNOCK = master multiplier (0 = off). Impulse speed KN_V*KNOCK u/s along shot dir, exp. decay KN_DECAY /s => slide distance ~ KN_V*KNOCK/KN_DECAY (~21u). RAZEB shots push KN_RZ times as much but stack up to KN_CAP u/s. */
-const KNOCK=1,KN_V=55,KN_DECAY=2.6,KN_RZ=.3,KN_CAP=95,KREC=3;
+const KNOCK=1,KN_V=55,KN_DECAY=2.6,KN_RZ=.45,KN_CAP=95,KREC=3;
 /* VERTICAL (launch into the air): KN_UP = upward speed u/s per hit (peak height ~ KN_UP^2/(2*GRAV)); RAZEB hit gives KN_UP*KN_UP_RZ, stacking up to KN_UP_CAP. GRAV = gravity u/s^2. KN_AIR = horizontal decay while airborne (ground uses KN_DECAY). KN_BOUNCE = restitution on landing (0 = none), KN_SPIN = hull tumble rad/s per hit, KN_TMAX = max tumble angle, KN_FLY = allow flying over boxes lower than the tank's altitude. KN_CTRL = steering/drive authority while airborne (0..1). */
-const KN_UP=12,KN_UP_RZ=.35,KN_UP_CAP=17,GRAV=30,KN_AIR=.5,KN_BOUNCE=.28,KN_SPIN=1.6,KN_TMAX=.15,KN_FLY=true,KN_CTRL=0;
+/* SOMERSAULT: KN_FLIPS = full flips (2PI each) per launch, KN_FLIP_END = fraction of airtime the flip takes (rest = upright wait), KN_PIVOT = rotation centre height. Airtime T=2*ky/GRAV, peak=GRAV*T^2/8 (KN_UP*KN_UP_RZ=15.4 => T~1.7s, peak~6.5u). */
+const KN_FLIPS=1,KN_FLIP_END=.88,KN_PIVOT=.7;
+const KN_UP=44,KN_UP_RZ=.35,KN_UP_CAP=18,GRAV=18,KN_AIR=.5,KN_BOUNCE=.28,KN_SPIN=1.6,KN_TMAX=.15/*unused in flight; ground wobble only*/,KN_FLY=true,KN_CTRL=0;
+const PV=new THREE.Vector3();
 const airborne=t=>(t.y||0)>.02||(t.ky||0)>0;
 function knock(t,dx,dz,rz){if(!KNOCK||!rz||!t||t.hp<=0||t.inv>performance.now())return;const m=KNOCK*KN_V*(rz?KN_RZ:1);let vx=(t.kx||0)+dx*m,vz=(t.kz||0)+dz*m;const sp=Math.hypot(vx,vz);if(sp>KN_CAP){vx*=KN_CAP/sp;vz*=KN_CAP/sp}t.kx=vx;t.kz=vz;t.v*=.3;
- t.ky=Math.min(KN_UP_CAP,Math.max(t.ky||0,0)+KN_UP*KNOCK*(rz?KN_UP_RZ:1));if(!t.y)t.y=.001;t.kdx=dx;t.kdz=dz;t.tv=Math.min(3,(t.tv||0)+KN_SPIN*.5)}
+ t.ky=Math.min(KN_UP_CAP,Math.max(t.ky||0,0)+KN_UP*KNOCK*(rz?KN_UP_RZ:1));if(!t.y)t.y=.001;t.kdx=dx;t.kdz=dz;startFlip(t)}
+function startFlip(t){const g=Math.max(.2,(t.ky+Math.sqrt(t.ky*t.ky+2*GRAV*(t.y||0)))/GRAV),a0=t.tp||0,TP=Math.PI*2;t.fA0=a0;t.fA1=Math.round(a0/TP)*TP+TP*KN_FLIPS;t.fT=0;t.fD=g*KN_FLIP_END;t.fa=true;t.tv=0}
 function landFx(t,vi){t.landT=performance.now();if(t===me&&vi>3){shakeT=t.landT;shakeA=.4}}
 function stepAir(t,dt){
  if(airborne(t)){t.ky=(t.ky||0)-GRAV*dt;t.y=(t.y||0)+t.ky*dt;
-  if(t.y<=0){t.y=0;const vi=-t.ky;if(vi>4&&KN_BOUNCE>0){t.ky=vi*KN_BOUNCE;t.y=.001;const f=.55;t.kx*=f;t.kz*=f}else{t.ky=0}landFx(t,vi)}
-  t.tv=Math.max(-3,Math.min(3,t.tv||0));t.tp=Math.max(-KN_TMAX,Math.min(KN_TMAX,(t.tp||0)+(t.tv||0)*dt));if(Math.abs(t.tp)>=KN_TMAX)t.tv=0}
- else{t.y=0;t.ky=0;const tp=t.tp||0,tv=t.tv||0;if(tp||tv){const nv=tv+(-90*tp-9*tv)*dt;t.tv=nv;t.tp=tp+nv*dt;if(Math.abs(t.tp)<.005&&Math.abs(nv)<.05){t.tp=0;t.tv=0}}}}
+  if(t.y<=0){t.y=0;const vi=-t.ky;t.fa=false;t.tp=0;t.tv=0;if(vi>4&&KN_BOUNCE>0){t.ky=vi*KN_BOUNCE;t.y=.001;const f=.55;t.kx*=f;t.kz*=f}else{t.ky=0;t.tp=.1*(t.kdx||t.kdz?1:0);t.tv=0}landFx(t,vi)}
+  if(t.fa){t.fT+=dt;const u=Math.min(1,t.fT/t.fD),e=u*u*(3-2*u);t.tp=t.fA0+(t.fA1-t.fA0)*e;if(u>=1){t.fa=false;t.tp=0;t.tv=0}}
+  else springTp(t,dt)}
+ else{t.y=0;t.ky=0;if(t.fa){t.fa=false;t.tp=0;t.tv=0}springTp(t,dt)}}
+function springTp(t,dt){const tp=t.tp||0,tv=t.tv||0;if(tp||tv){const nv=tv+(-90*tp-9*tv)*dt;t.tv=nv;t.tp=tp+nv*dt;if(Math.abs(t.tp)<.005&&Math.abs(nv)<.05){t.tp=0;t.tv=0}}}
 function stepKnock(t,dt){stepAir(t,dt);if(!t.kx&&!t.kz)return;const sp=Math.hypot(t.kx,t.kz);if(sp<.4){t.kx=t.kz=0;return}
  const n=Math.ceil(sp*dt/.4),h=dt/n;for(let i=0;i<n;i++){const ox=t.x,oz=t.z;t.x+=t.kx*h;t.z+=t.kz*h;resolve(t);
   const mx=t.x-ox,mz=t.z-oz,ex=t.kx*h,ez=t.kz*h;if(Math.hypot(mx,mz)<Math.hypot(ex,ez)*.5){t.kx*=.4;t.kz*=.4}}
@@ -357,7 +363,7 @@ function connect(code,kind,tries=0){if(busy)return;busy=true;$('info').textConte
    else if(d.t=='joined'){$('lst').textContent='Соперник подключился, начинаем...'}
    else if(d.t=='wait'){$('lst').textContent='Ожидание соперника...'}
    else if(d.t=='start'){started=true;busy=false;begin(d.idx,d.opp,false,d.oppPaint,d.oppSkin,d.oppRz)}
-   else if(d.t=='s'&&opp&&!over){opp.tx=d.x;opp.tz=d.z;opp.ty=d.y||0;opp.ta2=d.a;opp.tta=d.ta;opp.hp=d.hp}
+   else if(d.t=='s'&&opp&&!over){opp.tx=d.x;opp.tz=d.z;opp.ty=d.y||0;opp.ta2=d.a;opp.tta=d.ta;opp.hp=d.hp;opp.tfp=d.f||0;if(d.kx!==undefined){opp.kdx=d.kx;opp.kdz=d.kz}}
    else if(d.t=='shot'&&opp&&!over){beam(d.ox,d.oz,d.dx,d.dz,d.vl||d.len,0xff5577,d.oy||1.5,d.dy||0);opp.chargeT=0;opp.flashT=performance.now();if(opp.rz){opp.fb=d.b===1?1:0;opp.bi=opp.fb^1}if(me.hp>0&&hitCheck(d,me)){hitFx(me,d.dx,d.dz,d.rz);knock(me,d.dx,d.dz,d.rz);damage(me,DMG*(d.dm||1)*(me.buffs.defense>performance.now()?.5:1));if(me.hp<=0)died()}}
    else if(d.t=='rz'&&opp&&!opp.isBot){swapRz(opp,d.v===true,false)}
    else if(d.t=='charge'&&opp&&!over){opp.chargeT=performance.now()}
@@ -452,15 +458,15 @@ function loop(now){requestAnimationFrame(loop);const dt=Math.min(.05,(now-prev)/
    if(wantFire&&rl>=1&&me.hp>0){me.chargeT=now;if(ws&&ws.readyState==1)ws.send(JSON.stringify({t:'charge'}))}}
   fireReq=false;
   stepKnock(me,dt);if(opp.isBot)stepKnock(opp,dt);
-  if(opp.isBot)botAI(dt,now);else if(opp.tx!==undefined){opp.x+=(opp.tx-opp.x)*Math.min(1,dt*15);opp.z+=(opp.tz-opp.z)*Math.min(1,dt*15);opp.a=opp.ta2;opp.ta=opp.tta;{const py=opp.y||0;opp.y=py+((opp.ty||0)-py)*Math.min(1,dt*15);const vy=(opp.y-py)/Math.max(dt,1e-3);opp.tp=Math.max(-KN_TMAX,Math.min(KN_TMAX,-vy*.07))*(opp.y>.03?1:0)}}
-  sendT+=dt;if(ws&&ws.readyState==1&&sendT>.05){sendT=0;ws.send(JSON.stringify({t:'s',x:me.x,z:me.z,y:+(me.y||0).toFixed(2),a:me.a,ta:me.ta,hp:me.hp}));}
+  if(opp.isBot)botAI(dt,now);else if(opp.tx!==undefined){opp.x+=(opp.tx-opp.x)*Math.min(1,dt*15);opp.z+=(opp.tz-opp.z)*Math.min(1,dt*15);opp.a=opp.ta2;opp.ta=opp.tta;{const py=opp.y||0;opp.y=py+((opp.ty||0)-py)*Math.min(1,dt*15);const TP=Math.PI*2,cur=opp.tp||0;let df=((opp.tfp||0)-cur)%TP;if(df>Math.PI)df-=TP;if(df<-Math.PI)df+=TP;opp.tp=(opp.y>.03||opp.tfp)?cur+df*Math.min(1,dt*25):0;if(!opp.tfp&&Math.abs(opp.tp)<.01)opp.tp=0}}
+  sendT+=dt;if(ws&&ws.readyState==1&&sendT>.05){sendT=0;ws.send(JSON.stringify({t:'s',x:me.x,z:me.z,y:+(me.y||0).toFixed(2),a:me.a,ta:me.ta,hp:me.hp,f:+((me.tp||0)%(Math.PI*2)).toFixed(3),kx:+(me.kdx||0).toFixed(2),kz:+(me.kdz||0).toFixed(2)}));}
   if(!opp.isBot)updHud();
  }
  if(me){for(const t of[me,opp]){const nw=performance.now();let ox=0,oz=0,ux=0,uz=0,tl=0;
   {const rc=recoil(t,nw);if(rc>0){const ax=Math.sin(t.ta),az=Math.cos(t.ta);ox-=ax*.35*rc;oz-=az*.35*rc;tl+=rc;ux+=ax*rc;uz+=az*rc}}
   {const rc=hitRec(t,nw);if(rc>0){const ax=-t.hitDx,az=-t.hitDz;ox-=ax*.3*rc;oz-=az*.3*rc;tl+=rc*(KNOCK&&t.hitRz?1.4:1);ux+=ax*rc;uz+=az*rc}}
   t.mesh.position.set(t.x+ox,t.y||0,t.z+oz);t.mesh.quaternion.setFromAxisAngle(YAX,t.a);
-  if(t.tp){const kx=t.kdx||0,kz=t.kdz||0,L=Math.hypot(kx,kz)||1;/* shooter-facing side lifts: lift dir u=-k */TQ.setFromAxisAngle(TAX.set(kz/L,0,-kx/L),t.tp);t.mesh.quaternion.premultiply(TQ)}
+  if(t.tp){const kx=t.kdx||0,kz=t.kdz||0,L=Math.hypot(kx,kz)||1;/* shooter-facing side lifts: lift dir u=-k */TQ.setFromAxisAngle(TAX.set(kz/L,0,-kx/L),t.tp);t.mesh.quaternion.premultiply(TQ);/* pivot about body centre, not the tracks */{const c=KN_PIVOT,q=TQ,v=PV.set(0,c,0).applyQuaternion(q);t.mesh.position.x+=0-v.x;t.mesh.position.y+=c-v.y;t.mesh.position.z+=0-v.z}}
   if(tl>0){const L=Math.hypot(ux,uz)||1,ax=ux/L,az=uz/L,ang=Math.min(tl,1.8)*.15;/* model forward=+Z; Rx(-ang) lifts +Z; axis = right of aim dir (cos,0,-sin)*/ TQ.setFromAxisAngle(TAX.set(az,0,-ax),-ang);t.mesh.quaternion.premultiply(TQ)}
   updTrk(t);  t.mesh.tur.rotation.y=t.ta-t.a;t.mesh.visible=t.hp>0}
   for(const t of[me,opp]){if(t.inv>now)t.mesh.visible=Math.floor(now/120)%2==0;else if(t.inv){t.inv=0;t.mesh.visible=true}updGlow(t,now);updAura(t,now);updIcons(t,now)}updDrops(now,dt);updBuffs(now);
