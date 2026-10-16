@@ -42,7 +42,7 @@ const TANKS={hornet:{hp:150,speed:5,turn:1.8,acc:12,drag:10,tacc:8,color:0x6b7a3
 const RELOAD=2000,CHARGE=500;const DMG=50,RANGE=80,A=30,WIN=3,R=1.3;
 const params=new URLSearchParams(location.search);
 let room=(params.get('room')||'').toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,6);
-let myType='hornet',mySkin='silver',myPaint='';const PAINTS=['p0','p1','p2','p3','p4','p5'];
+let myType='hornet',mySkin='silver',myPaint='';const PAINTS=['p0','p1','p2','p3','p4','p5','p6','p7','p8','p9','p10'];
 const $=id=>document.getElementById(id);
 ['hornet','wasp'].forEach(k=>$('c_'+k).onclick=()=>{myType=k;pvRefresh();$('c_hornet').classList.toggle('sel',k=='hornet');$('c_wasp').classList.toggle('sel',k=='wasp')});
 // scene
@@ -230,7 +230,7 @@ const PL=['',...PAINTS];function showPaint(){const k=myPaint,v=$('pview');v.inne
 const stepPaint=d=>{myPaint=PL[(PL.indexOf(myPaint)+d+PL.length)%PL.length];showPaint()};$('pprev').onclick=()=>stepPaint(-1);$('pnext').onclick=()=>stepPaint(1);showPaint();
 const loadWait=()=>Promise.race([loadP,new Promise(r=>setTimeout(r,6000))]);
 function begin(i,oppType,isBot,oppPaint){drops.forEach(d=>scene.remove(d.sp));drops=[];nextDropAt=performance.now()+4000;pvStop();if(me){scene.remove(me.mesh);scene.remove(opp.mesh)}over=false;$('msg').style.display='none';idx=i;const sp=spawnPos(i),so=spawnPos(1-i);
- me=mk(myType,sp[0],sp[1],sp[2],myPaint);opp=mk(oppType,so[0],so[1],so[2],isBot?(Math.random()<.5?'':PAINTS[Math.floor(Math.random()*6)]):(oppPaint||''));opp.isBot=isBot;
+ me=mk(myType,sp[0],sp[1],sp[2],myPaint);opp=mk(oppType,so[0],so[1],so[2],isBot?(Math.random()<.5?'':PAINTS[Math.floor(Math.random()*PAINTS.length)]):(oppPaint||''));opp.isBot=isBot;
  mode='play';$('menu').style.display='none';['hud','joy','fire','rl'].forEach(id=>$(id).style.display='block');if(matchMedia('(pointer:fine)').matches)$('hint').style.display='block';
  me.last=performance.now()+500;opp.last=performance.now()+2500;
  $('score').textContent=(isBot?'Бот':'Соперник')+': '+oppType+' Railgun'; setTimeout(updHud,3000);updHud();}
