@@ -31,6 +31,8 @@ wss.on('connection',(ws,req)=>{
     if(d.t==='pickup'){if(!r.started||!r.drops)return;const dr=r.drops[d.id];if(!dr)return;delete r.drops[d.id];const by=r.indexOf(ws);r.forEach(w=>send(w,{t:'taken',id:d.id,by,type:ZT[dr.zone]}));return}
     if(d.t==='rematch'){ws.ready=true;r.started=false;stopDrops(r);if(r.length<2)send(ws,{t:'wait'});tryStart(r);return;}
     if(!r.started)return;
+    if(d.t==='lz'||d.t==='msl'){const n=v=>Math.max(-500,Math.min(500,Number.isFinite(v)?v:0)),c=d.t==='lz'?{t:'lz',on:d.on?1:0,ox:n(d.ox),oy:n(d.oy),oz:n(d.oz),tx:n(d.tx),ty:n(d.ty),tz:n(d.tz),p:Math.max(0,Math.min(1,+d.p||0))}:{t:'msl',ox:n(d.ox),oy:n(d.oy),oz:n(d.oz),dx:n(d.dx),dz:n(d.dz),seed:Math.max(0,Math.min(1,+d.seed||0))};
+      const o2=r.find(w=>w!==ws);if(o2)send(o2,c);return}
     const o=r.find(w=>w!==ws);if(o)send(o,d);});
   ws.on('close',()=>{const i=r.indexOf(ws);if(i>=0)r.splice(i,1);stopDrops(r);
     const o=r[0];if(o){o.ready=false;if(r.started||true){r.started=false;send(o,{t:'left'})}}
