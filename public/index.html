@@ -43,7 +43,7 @@ const TANKS={hornet:{hp:150,speed:6,turn:1.8,acc:12,drag:10,tacc:8,color:0x6b7a3
 const RELOAD=2000,CHARGE=500;const DMG=50,RANGE=80,A=30,WIN=3,R=1.3;
 const params=new URLSearchParams(location.search);
 let room=(params.get('room')||'').toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,6);
-let myType='hornet',mySkin='silver',myPaint='',mySkn='lg';const PAINTS=['p0','p1','p2','p3','p4','p5','p6','p7','p8','p9','p10'];
+let myType='hornet',mySkin='silver',myPaint='',mySkn='lg';const PAINTS=['p0','p1','p2','p3','p4','p5','p6','p7','p8','p9','p10','p11'];
 const $=id=>document.getElementById(id);
 ['hornet','wasp'].forEach(k=>$('c_'+k).onclick=()=>{myType=k;pvRefresh();$('c_hornet').classList.toggle('sel',k=='hornet');$('c_wasp').classList.toggle('sel',k=='wasp')});
 // scene
@@ -126,17 +126,30 @@ const MODELS={};const ML=new GLTFLoader();
 const MDEF={hornet:{url:'models/m3/hornet.gltf',len:3.7},wasp:{url:'models/m3/wasp.gltf',len:3.5},tur:{url:'models/m3/turret.gltf'},hornet_xt:{url:'models/m3/hornet_xt.gltf',len:3.7},wasp_xt:{url:'models/m3/wasp_xt.gltf',len:3.5},tur_xt:{url:'models/m3/flash.gltf'},hornet_20:{url:'models/m3/hornet_20.gltf',len:3.7},wasp_20:{url:'models/m3/wasp_20.gltf',len:3.5},tur_20:{url:'models/m3/rail20.gltf'}};
 const IMG={};
 const loadImg=(k,u)=>new Promise(r=>{const i=new Image();i.onload=()=>{IMG[k]=i;r()};i.onerror=r;i.src=u});
-const IMGS={};PAINTS.forEach(p=>IMGS[p]='models/paints/'+p+'.jpg');['wasp','hornet','turret','wasp_xt','hornet_xt','flash','wasp_20','hornet_20','rail20'].forEach(k=>{IMGS[k+'_l']='models/m3/'+k+'_light.jpg';IMGS[k+'_d']='models/m3/'+k+'_det.png'});
+const IMGS={};PAINTS.forEach(p=>{if(p!=='p11')IMGS[p]='models/paints/'+p+'.jpg'});['wasp','hornet','turret','wasp_xt','hornet_xt','flash','wasp_20','hornet_20','rail20'].forEach(k=>{IMGS[k+'_l']='models/m3/'+k+'_light.jpg';IMGS[k+'_d']='models/m3/'+k+'_det.png'});
 const loadP=Promise.all(Object.keys(MDEF).map(k=>new Promise(r=>{ML.load(MDEF[k].url,g=>{MODELS[k]=g.scene;r()},undefined,()=>r())})).concat(Object.keys(IMGS).map(k=>loadImg(k,IMGS[k])))).catch(()=>{});
 const paintCache={};
-function paintTex(key,paint){const ck=key+'/'+paint;if(paintCache[ck])return paintCache[ck];
- const L=IMG[key+'_l'],D=IMG[key+'_d'],P=IMG[paint];if(!L||!D||!P)return null;
- const cv=document.createElement('canvas');cv.width=L.width;cv.height=L.height;const c=cv.getContext('2d');
+// animated paint p11: seamless flowing neon plasma (128px tile, integer spatial frequencies => tiles seamlessly)
+const ANIM_PAINT='p11',PL_N=128,plCv=document.createElement('canvas');plCv.width=plCv.height=PL_N;const plC=plCv.getContext('2d'),plImg=plC.createImageData(PL_N,PL_N),PLUT=new Uint8Array(256*3);
+(function(){for(let i=0;i<256;i++){const h=i/256*6,f=h-Math.floor(h),q=.15+.85*(1-f),tt=.15+.85*f;let r,g,b;switch(Math.floor(h)%6){case 0:r=1;g=tt;b=.15;break;case 1:r=q;g=1;b=.15;break;case 2:r=.15;g=1;b=tt;break;case 3:r=.15;g=q;b=1;break;case 4:r=tt;g=.15;b=1;break;default:r=1;g=.15;b=q}PLUT[i*3]=r*255;PLUT[i*3+1]=g*255;PLUT[i*3+2]=b*255}})();
+function plasmaDraw(t){const d=plImg.data,T=Math.PI*2/PL_N;const p1=t*.9,p2=t*.7,p3=t*.5,p4=t*.8;let k=0;
+ for(let y=0;y<PL_N;y++)for(let x=0;x<PL_N;x++){const a=Math.sin(T*(2*x)+p1)+Math.sin(T*(3*y)-p2)+Math.sin(T*(x+y)+p3)+Math.sin(T*(x-2*y)+p4);
+  const hh=((a*.09+t*.06)%1+1)%1,i=(hh*256|0)*3,br=.8+.2*Math.sin(a*1.3);d[k]=PLUT[i]*br;d[k+1]=PLUT[i+1]*br;d[k+2]=PLUT[i+2]*br;d[k+3]=255;k+=4}
+ plC.putImageData(plImg,0,0)}
+function paintCompose(cv,L,D,P){const c=cv.getContext('2d');
  const ts=Math.round(cv.width/4);for(let y=0;y<cv.height;y+=ts)for(let x=0;x<cv.width;x+=ts)c.drawImage(P,x,y,ts,ts);
  c.globalCompositeOperation='multiply';c.drawImage(L,0,0,cv.width,cv.height);
  c.globalCompositeOperation='lighter';c.drawImage(cv,0,0);
- c.globalCompositeOperation='source-over';c.drawImage(D,0,0,cv.width,cv.height);
- const t=new THREE.CanvasTexture(cv);t.flipY=false;t.colorSpace=THREE.SRGBColorSpace;t.anisotropy=2;return paintCache[ck]=t}
+ c.globalCompositeOperation='source-over';c.drawImage(D,0,0,cv.width,cv.height)}
+const animTex=[];
+function paintTex(key,paint){const ck=key+'/'+paint;if(paintCache[ck])return paintCache[ck];
+ const anim=paint===ANIM_PAINT,L=IMG[key+'_l'],D=IMG[key+'_d'],P=anim?plCv:IMG[paint];if(!L||!D||!P)return null;
+ if(anim&&!plasmaDraw.init){plasmaDraw.init=1;plasmaDraw(0)}
+ const cv=document.createElement('canvas');cv.width=L.width;cv.height=L.height;paintCompose(cv,L,D,P);
+ const t=new THREE.CanvasTexture(cv);t.flipY=false;t.colorSpace=THREE.SRGBColorSpace;t.anisotropy=2;if(anim){t.userData.anim={cv,L,D};animTex.push(t)}return paintCache[ck]=t}
+let animLast=0;
+function animTick(now,roots){if(!animTex.length||now-animLast<66)return;const used=new Set();roots.forEach(r=>r&&r.traverse(o=>{if(o.isMesh&&o.material&&o.material.map&&o.material.map.userData.anim)used.add(o.material.map)}));if(!used.size)return;
+ animLast=now;plasmaDraw(now/1000);used.forEach(t=>{const a=t.userData.anim;paintCompose(a.cv,a.L,a.D,plCv);t.needsUpdate=true})}
 function applyPaint(obj,key,paint){if(!paint)return;const t=paintTex(key,paint);if(!t)return;obj.traverse(o=>{if(o.isMesh&&o.material.name!=='track'){o.material.map=t;o.material.needsUpdate=true}})}
 function makeModelTank(type,paint,skin){const sfx=skin==='xt'?'_xt':skin==='20'?'_20':'',xt=sfx!=='',hk=type+sfx,src=MODELS[hk],ts=sfx?MODELS['tur'+sfx]:MODELS.tur;if(!src||!ts)return null;
  const def=MDEF[hk],g=new THREE.Group(),root=src.clone(true);
@@ -169,7 +182,7 @@ function pvRefresh(){const k=myType+'/'+myPaint+'/'+mySkn+'/'+Object.keys(MODELS
 loadP.then(pvRefresh);pvRefresh();
 let pvLast=performance.now();
 function pvLoop(now){if(!pvOn)return;requestAnimationFrame(pvLoop);const dt=Math.min(.05,(now-pvLast)/1000);pvLast=now;
- if(pvT){pvT.rotation.y+=dt*.6;pvT.tur.rotation.y=Math.sin(now/1500)*.35}pvR.render(pvS,pvC)}
+ if(pvT){pvT.rotation.y+=dt*.6;pvT.tur.rotation.y=Math.sin(now/1500)*.35}animTick(now,[pvT]);pvR.render(pvS,pvC)}
 requestAnimationFrame(pvLoop);
 function pvStop(){pvOn=false;pvS.remove(pvT);pvR.dispose();pvCv.style.display='none'}
 // state: yaw 0 => facing +z. tank a = hull yaw, ta = turret world yaw
@@ -231,7 +244,13 @@ fb.addEventListener('pointerdown',e=>{e.preventDefault();e.stopPropagation();fir
 fb.addEventListener('contextmenu',e=>e.preventDefault());fb.addEventListener('touchstart',e=>e.preventDefault(),{passive:false});
 const keys={};addEventListener('keydown',e=>{keys[e.code]=1;if(e.code=='Space')fireReq=true});addEventListener('keyup',e=>keys[e.code]=0);
 // flow
-const PL=['',...PAINTS];['i_base',...PAINTS.map(p=>'i'+p.slice(1))].forEach(n=>{new Image().src='models/paints/'+n+'.webp?v=3'});function showPaint(){const k=myPaint,v=$('pview');v.innerHTML=k?`<img src="models/paints/i${k.slice(1)}.webp?v=3" style="width:100%;height:100%;object-fit:contain">`:'<img src="models/paints/i_base.webp?v=3" style="width:100%;height:100%;object-fit:contain">';$('pcnt').textContent=(PL.indexOf(k)+1)+' / '+PL.length;pvRefresh()}
+const PL=['',...PAINTS];['i_base',...PAINTS.map(p=>'i'+p.slice(1))].forEach(n=>{new Image().src='models/paints/'+n+'.webp?v=4'});let pvAnim=0;function pvAnimStop(){if(pvAnim){clearInterval(pvAnim);pvAnim=0}}
+function pvAnimStart(v){const cv=document.createElement('canvas');cv.width=166;cv.height=106;cv.style.cssText='width:100%;height:100%';v.innerHTML='';v.appendChild(cv);const c=cv.getContext('2d');
+ const fr=[0,1,2,3,4].map(i=>[14+i*(138/4),12]).concat([0,1,2,3,4].map(i=>[14+i*(138/4),93]));
+ const draw=()=>{plasmaDraw(performance.now()/1000);c.clearRect(0,0,166,106);c.save();c.beginPath();c.rect(12,10,142,86);c.clip();for(let y=0;y<106;y+=PL_N)for(let x=0;x<166;x+=PL_N)c.drawImage(plCv,x,y);c.restore();
+  fr.forEach(([x,y])=>{const g=c.createRadialGradient(x-2,y-2,1,x,y,6);g.addColorStop(0,'#c0c0c6');g.addColorStop(1,'#78787d');c.fillStyle=g;c.beginPath();c.arc(x,y,6,0,7);c.fill()})};
+ draw();pvAnim=setInterval(()=>{if(mode=='menu')draw()},66)}
+function showPaint(){const k=myPaint,v=$('pview');pvAnimStop();v.innerHTML=k?`<img src="models/paints/i${k.slice(1)}.webp?v=4" style="width:100%;height:100%;object-fit:contain">`:'<img src="models/paints/i_base.webp?v=4" style="width:100%;height:100%;object-fit:contain">';if(k===ANIM_PAINT)pvAnimStart(v);$('pcnt').textContent=(PL.indexOf(k)+1)+' / '+PL.length;pvRefresh()}
 const stepPaint=d=>{myPaint=PL[(PL.indexOf(myPaint)+d+PL.length)%PL.length];showPaint()};$('pprev').onclick=()=>stepPaint(-1);$('pnext').onclick=()=>stepPaint(1);showPaint();
 const setSkn=k=>{mySkn=k;$('sk_20').classList.toggle('sel',k=='20');$('sk_lg').classList.toggle('sel',k=='lg');$('sk_xt').classList.toggle('sel',k=='xt');pvRefresh()};$('sk_lg').onclick=()=>setSkn('lg');$('sk_xt').onclick=()=>setSkn('xt');$('sk_20').onclick=()=>setSkn('20');
 const loadWait=()=>Promise.race([loadP,new Promise(r=>setTimeout(r,6000))]);
@@ -361,6 +380,6 @@ function loop(now){requestAnimationFrame(loop);const dt=Math.min(.05,(now-prev)/
   const cp=Math.cos(camPitch),sp=Math.sin(camPitch),D=9,sx=Math.sin(me.ta),sz=Math.cos(me.ta);
   cam.position.set(Math.max(-A-4,Math.min(A+4,me.x-sx*cp*D)),1.2+sp*D,Math.max(-A-4,Math.min(A+4,me.z-sz*cp*D)));{const sk=performance.now()-shakeT;if(sk<300){const a=.14*(1-sk/300)**2;cam.position.x+=(Math.random()-.5)*a;cam.position.y+=(Math.random()-.5)*a;cam.position.z+=(Math.random()-.5)*a}}cam.lookAt(me.x+sx*5,1.2,me.z+sz*5);}
  else{cam.position.set(0,25,-35);cam.lookAt(0,0,0)}
- renderer.render(scene,cam)}
+ animTick(now,[me&&me.mesh,opp&&opp.mesh]);renderer.render(scene,cam)}
 requestAnimationFrame(loop);
 </script></body></html>
