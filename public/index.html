@@ -233,7 +233,7 @@ const loadWait=()=>Promise.race([loadP,new Promise(r=>setTimeout(r,6000))]);
 function begin(i,oppType,isBot,oppPaint){drops.forEach(d=>scene.remove(d.sp));drops=[];nextDropAt=performance.now()+4000;pvStop();if(me){scene.remove(me.mesh);scene.remove(opp.mesh)}over=false;$('msg').style.display='none';idx=i;const sp=spawnPos(i),so=spawnPos(1-i);
  me=mk(myType,sp[0],sp[1],sp[2],myPaint);opp=mk(oppType,so[0],so[1],so[2],isBot?(Math.random()<.5?'':PAINTS[Math.floor(Math.random()*PAINTS.length)]):(oppPaint||''));opp.isBot=isBot;
  mode='play';$('menu').style.display='none';['hud','joy','fire','rl'].forEach(id=>$(id).style.display='block');if(matchMedia('(pointer:fine)').matches)$('hint').style.display='block';
- me.last=performance.now()+500;opp.last=performance.now()+2500;
+ me.last=performance.now()-RELOAD-800;opp.last=performance.now()-RELOAD-800;me.chargeT=opp.chargeT=0;
  $('score').textContent=(isBot?'Бот':'Соперник')+': '+oppType+' Railgun'; setTimeout(updHud,3000);updHud();}
 const CH='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 const genCode=()=>Array.from({length:5},()=>CH[Math.floor(Math.random()*CH.length)]).join('');
@@ -275,8 +275,8 @@ $('again').onclick=()=>{if(ws&&ws.readyState==1){ws.send(JSON.stringify({t:'rema
 if(room){$('code').value=room;$('info').textContent='Приглашение в комнату '+room+'. Выбери танк и скин, затем нажми «Войти по коду»'}
 function died(){opp.kills++;if(ws)ws.send(JSON.stringify({t:'died'}));if(opp.isBot){}
  if(opp.kills>=WIN)return end('Поражение 😢');
- const sp=spawnPos(idx);me.x=sp[0];me.z=sp[1];me.a=me.ta=sp[2];me.v=me.w=0;me.chargeT=0;me.hp=me.max;me.buffs={};me.inv=performance.now()+3000;updHud()}
-function respawnOpp(){if(me.kills>=WIN)return end('ПОБЕДА! 🏆');opp.buffs={};opp.inv=performance.now()+3000;if(opp.isBot){const sp=spawnPos(1-idx);opp.x=sp[0];opp.z=sp[1];opp.v=opp.w=0;opp.chargeT=0;opp.hp=opp.max;opp.last=performance.now()+2000}updHud()}
+ const sp=spawnPos(idx);me.x=sp[0];me.z=sp[1];me.a=me.ta=sp[2];me.v=me.w=0;me.chargeT=0;me.hp=me.max;me.last=performance.now()-RELOAD-800;me.buffs={};me.inv=performance.now()+3000;updHud()}
+function respawnOpp(){if(me.kills>=WIN)return end('ПОБЕДА! 🏆');opp.buffs={};opp.inv=performance.now()+3000;if(opp.isBot){const sp=spawnPos(1-idx);opp.x=sp[0];opp.z=sp[1];opp.v=opp.w=0;opp.chargeT=0;opp.hp=opp.max;opp.last=performance.now()-RELOAD-800}updHud()}
 function end(t){over=true;$('mt').textContent=t;$('msg').style.display='flex'}
 function updHud(){$('hp1').style.width=100*me.hp/me.max+'%';$('hp2').style.width=100*opp.hp/opp.max+'%';
  $('score').textContent=`Ты ${me.kills} : ${opp.kills} ${opp.isBot?'Бот':'Соперник'} (до ${WIN})`}
