@@ -34,6 +34,7 @@ button{font-size:20px;padding:12px 28px;border-radius:10px;border:0;background:#
 #coderow{margin-top:12px;display:flex;gap:8px;justify-content:center;align-items:center}
 #coderow button{margin:0;padding:10px 16px;font-size:17px}
 #fsb{position:fixed;top:calc(30px + env(safe-area-inset-top));right:calc(6px + env(safe-area-inset-right));z-index:30;width:36px;height:36px;padding:0;margin:0;font-size:22px;line-height:36px;border-radius:8px;background:rgba(255,179,0,.85);color:#000}
+#hgb{position:absolute;top:calc(30px + env(safe-area-inset-top));left:calc(6px + env(safe-area-inset-left));width:30px;height:30px;padding:0;margin:0;font-size:17px;line-height:30px;border-radius:8px;background:rgba(0,0,0,.35);color:#fff;opacity:.35;pointer-events:auto;z-index:12;border:0}
 #secb{position:fixed;left:calc(6px + env(safe-area-inset-left));bottom:calc(6px + env(safe-area-inset-bottom));width:30px;height:30px;padding:0;margin:0;font-size:17px;line-height:30px;border-radius:8px;background:transparent;color:#fff;opacity:.18;z-index:12}
 #secm{position:fixed;inset:0;z-index:40;background:rgba(0,0,0,.75);display:none;align-items:center;justify-content:center}
 #secm .bx{background:#1c1c1c;border:2px solid #ffb300;border-radius:12px;padding:12px 16px;min-width:230px;max-width:86vw;max-height:94dvh;overflow-y:auto;box-sizing:border-box;text-align:center}
@@ -67,7 +68,7 @@ button{font-size:20px;padding:12px 28px;border-radius:10px;border:0;background:#
 </style></head><body>
 <button id="fsb" title="Fullscreen" style="display:none">&#9974;</button>
 <div id="secm"><div class="bx"><div id="secp"><h3>Пароль</h3><input id="secpw" type="password" inputmode="numeric" autocomplete="off"><div id="secerr"></div><div><button id="secok">OK</button><button id="secx1" style="background:#555;color:#fff">Отмена</button></div></div>
-<div id="secs" style="display:none"><h3>Секретные настройки</h3><div class="tg"><span>Aim assist</span><button id="tgaim"></button></div><div class="tg"><span>Auto fire</span><button id="tgfire"></button></div><div class="tg"><span>Прострел стен</span><button id="tgpen"></button></div><div class="tg"><span>RAZEB (Terminator)</span><button id="tgrz"></button></div><button id="secx2" style="background:#555;color:#fff">Закрыть</button></div></div></div>
+<div id="secs" style="display:none"><h3>Секретные настройки</h3><div class="tg"><span>Aim assist</span><button id="tgaim"></button></div><div class="tg"><span>Auto fire</span><button id="tgfire"></button></div><div class="tg"><span>Прострел стен</span><button id="tgpen"></button></div><div class="tg"><span>RAZEB (Terminator)</span><button id="tgrz"></button></div><div style="font-size:12px;opacity:.7;margin:4px 0">Все настройки действуют сразу, в том числе в бою</div><button id="secx2" style="background:#555;color:#fff">Закрыть</button></div></div></div>
 <div id="menu"><button id="secb" title="Settings">&#9881;</button><div id="mleft"><h2>TANKS 1v1</h2><canvas id="pv" width="480" height="260"></canvas></div><div id="mright">
 <div class="lbl">Танк (Railgun):</div>
 <div class="skrow" id="tkrow"><div class="card sel" id="c_hornet" title="Hornet Railgun — HP 150, средний"><b>ХР</b></div><div class="card" id="c_wasp" title="Wasp Railgun — HP 100, быстрый"><b>ВР</b></div></div>
@@ -83,14 +84,14 @@ button{font-size:20px;padding:12px 28px;border-radius:10px;border:0;background:#
 <div id="info" style="margin-top:10px;color:#aaa"></div></div></div>
 <div id="msg" style="display:none;background:rgba(0,0,0,.6)"><h1 id="mt"></h1><button id="again">Ещё раз</button></div>
 <div id="buffs" style="position:fixed;top:44px;left:0;right:0;text-align:center;font-size:14px;pointer-events:none;z-index:5"></div>
-<div id="hud"><div class="bar" style="left:8px"><i id="hp1" style="width:100%"></i></div><div class="bar" style="right:8px"><i id="hp2" style="width:100%;float:right"></i></div><div id="score"></div></div>
+<div id="hud"><div class="bar" style="left:8px"><i id="hp1" style="width:100%"></i></div><div class="bar" style="right:8px"><i id="hp2" style="width:100%;float:right"></i></div><div id="score"></div><button id="hgb" title="Settings">&#9881;</button></div>
 <div id="hint" style="position:fixed;left:0;right:0;bottom:6px;text-align:center;font-size:12px;color:#fff9;display:none;pointer-events:none">WASD — движение · Z / X — башня · R / F — камера вверх / вниз · Пробел — огонь (заряд 0.5 с)</div>
 <div id="joy"><div id="knob"></div></div><div id="fire">FIRE</div><div id="rl"><i id="rli"></i></div>
 <script type="module">
 import * as THREE from './three.module.min.js';
 import {GLTFLoader} from './lib/GLTFLoader.js';
 const TANKS={hornet:{hp:150,speed:6,turn:1.8,acc:12,drag:10,tacc:8,color:0x6b7a3a},wasp:{hp:100,speed:10,turn:2.8,acc:17,drag:20,tacc:12,color:0xc9a227}};
-const RELOAD=2000,CHARGE=500,RZ_RATE=4;/* RAZEB: reload & charge divided by RZ_RATE */const relOf=t=>t.rz?RELOAD/RZ_RATE:RELOAD,chgOf=t=>t.rz?CHARGE/RZ_RATE:CHARGE;const DMG=50,RANGE=80,A=30,WIN=3,R=1.3;
+const RELOAD=2000,CHARGE=500,RZ_RATE=8,RZ_DMG=1/3;/* RAZEB: reload & charge divided by RZ_RATE */const relOf=t=>t.rz?RELOAD/RZ_RATE:RELOAD,chgOf=t=>t.rz?CHARGE/RZ_RATE:CHARGE;const DMG=50,RANGE=80,A=30,WIN=3,R=1.3;
 const SEC=(()=>{try{return Object.assign({aim:false,fire:false,pen:false,rz:false},JSON.parse(localStorage.getItem('tdsec')||'{}'))}catch(_){return{aim:false,fire:false,pen:false,rz:false}}})();
 const params=new URLSearchParams(location.search);
 let room=(params.get('room')||'').toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,6);
@@ -231,7 +232,7 @@ function makeTank(type,paint,skin,rz){let m=null;try{m=makeModelTank(type,paint,
 // ---- menu preview ----
 const pvCv=$('pv'),pvR=new THREE.WebGLRenderer({canvas:pvCv,antialias:true,alpha:false});pvR.setPixelRatio(Math.min(devicePixelRatio,2));pvR.setSize(240,130,false);
 const pvS=new THREE.Scene();pvS.background=new THREE.Color(0x1a2230);pvS.add(new THREE.HemisphereLight(0xffffff,0x445566,1.1));const pvL=new THREE.DirectionalLight(0xffffff,.9);pvL.position.set(4,6,3);pvS.add(pvL);
-const pvC=new THREE.PerspectiveCamera(35,240/130,.1,50);pvC.position.set(0,2.4,5.2);pvC.lookAt(0,.6,0);
+const pvC=new THREE.PerspectiveCamera(35,240/130,.1,50);pvC.position.set(0,2.9,7.4);pvC.lookAt(0,.75,0);
 const pvGround=new THREE.Mesh(new THREE.CylinderGeometry(2.6,2.6,.05,32),new THREE.MeshLambertMaterial({color:0x2d3a4a}));pvGround.position.y=-.03;pvS.add(pvGround);
 let pvT=null,pvOn=true,pvK='';
 function pvRefresh(){const k=myType+'/'+myPaint+'/'+mySkn+'/'+SEC.rz+'/'+Object.keys(MODELS).length+Object.keys(IMG).length;if(k==pvK)return;pvK=k;
@@ -243,7 +244,7 @@ function pvLoop(now){if(!pvOn)return;requestAnimationFrame(pvLoop);const dt=Math
 requestAnimationFrame(pvLoop);
 function pvStop(){pvOn=false;pvS.remove(pvT);pvR.dispose();pvCv.style.display='none'}
 // state: yaw 0 => facing +z. tank a = hull yaw, ta = turret world yaw
-function mk(type,x,z,a,paint,skin,rz){return{rz:!!rz,bi:0,fb:0,type,x,z,a,ta:a,hp:TANKS[type].hp,max:TANKS[type].hp,mesh:makeTank(type,paint,skin,rz),kills:0,last:0,v:0,w:0,chargeT:0,flashT:0,buffs:{}}}
+function mk(type,x,z,a,paint,skin,rz){return{pa:paint,sk:skin,rz:!!rz,bi:0,fb:0,type,x,z,a,ta:a,hp:TANKS[type].hp,max:TANKS[type].hp,mesh:makeTank(type,paint,skin,rz),kills:0,last:0,v:0,w:0,chargeT:0,flashT:0,buffs:{}}}
 let me,opp,mode='menu',idx=0,ws,bot=null,over=false;
 function spawnPos(i){return i==0?[0,-24,0]:[0,24,Math.PI]}
 function resolve(t){t.x=Math.max(-A+R,Math.min(A-R,t.x));t.z=Math.max(-A+R,Math.min(A-R,t.z));
@@ -272,7 +273,7 @@ function shoot(sh,tg,send){const bi=sh.rz?(sh.bi||0):0,[ox,oy,oz,dx,dz]=muzzlePo
  const len=pen?RANGE:wallDist(ox,oz,dx,dz);let vl=len,dy=0;
  if(tg&&tg.hp>0){const p=rayCircle(ox,oz,dx,dz,tg.x,tg.z,R*1.6);if(p!==null&&p<=len&&p>.5){vl=p;dy=.9-oy}}
  beam(ox,oz,dx,dz,vl,sh===me?0x00e5ff:0xff5577,oy,dy);sh.flashT=performance.now();sh.chargeT=0;sh.fb=bi;if(sh.rz)sh.bi=bi^1;sh.v-=(sh.rz?.8:2.5)*Math.cos(sh.ta-sh.a);if(sh===me)shakeT=sh.flashT;
- if(send&&ws&&ws.readyState==1)ws.send(JSON.stringify({t:'shot',ox,oy,oz,dx,dz,len,vl,dy,dm:(sh.buffs.damage>performance.now())?2:1,b:bi}));
+ if(send&&ws&&ws.readyState==1)ws.send(JSON.stringify({t:'shot',ox,oy,oz,dx,dz,len,vl,dy,dm:((sh.buffs.damage>performance.now())?2:1)*(sh.rz?RZ_DMG:1),b:bi}));
  return{ox,oz,dx,dz,len}}
 function drive(t,ix,iy,dt,T){const cl=(v,m)=>Math.max(-m,Math.min(m,v));
  const sm=(t.buffs&&t.buffs.speed>performance.now())?2:1;const tv=cl(iy,1)*T.speed*sm*(iy<0?.6:1);let rate=T.acc*sm;if(Math.abs(tv)<.01)rate=T.drag*sm;else if(t.v*tv<0||Math.abs(tv)<Math.abs(t.v))rate=T.acc*sm*1.6;
@@ -341,6 +342,7 @@ function connect(code,kind,tries=0){if(busy)return;busy=true;$('info').textConte
    else if(d.t=='start'){started=true;busy=false;begin(d.idx,d.opp,false,d.oppPaint,d.oppSkin,d.oppRz)}
    else if(d.t=='s'&&opp&&!over){opp.tx=d.x;opp.tz=d.z;opp.ta2=d.a;opp.tta=d.ta;opp.hp=d.hp}
    else if(d.t=='shot'&&opp&&!over){beam(d.ox,d.oz,d.dx,d.dz,d.vl||d.len,0xff5577,d.oy||1.5,d.dy||0);opp.chargeT=0;opp.flashT=performance.now();if(opp.rz){opp.fb=d.b===1?1:0;opp.bi=opp.fb^1}if(me.hp>0&&hitCheck(d,me)){hitFx(me,d.dx,d.dz);damage(me,DMG*(d.dm||1)*(me.buffs.defense>performance.now()?.5:1));if(me.hp<=0)died()}}
+   else if(d.t=='rz'&&opp&&!opp.isBot){swapRz(opp,d.v===true,false)}
    else if(d.t=='charge'&&opp&&!over){opp.chargeT=performance.now()}
    else if(d.t=='drop'){addDrop(d.id,d.zone)}
    else if(d.t=='dropgone'){removeDrop(d.id)}
@@ -384,7 +386,7 @@ function addDrop(id,zone){if(drops.some(d=>d.id==id))return;const z=ZONES[zone],
  const ln=new THREE.LineBasicMaterial({color:0xffffff});for(let i=0;i<4;i++){const a=i*Math.PI/2+Math.PI/4,pts=[new THREE.Vector3(Math.cos(a)*.6,1.3,Math.sin(a)*.6),new THREE.Vector3(Math.cos(a)*2,4.2,Math.sin(a)*2)];chute.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts),ln))}
  g.add(chute);g.position.set(z.x,26,z.z);scene.add(g);drops.push({id,zone,sp:g,chute,t0:performance.now(),pend:0})}
 function removeDrop(id){const i=drops.findIndex(d=>d.id==id);if(i>=0){scene.remove(drops[i].sp);drops.splice(i,1)}}
-function dmgFor(sh,tg){const n=performance.now();return DMG*(sh.buffs.damage>n?2:1)*(tg.buffs.defense>n?.5:1)}
+function dmgFor(sh,tg){const n=performance.now();return DMG*(sh.rz?RZ_DMG:1)*(sh.buffs.damage>n?2:1)*(tg.buffs.defense>n?.5:1)}
 function applyBuff(t,type,now){if(type=='repair'){t.hp=Math.min(t.max,t.hp+t.max*.5);updHud()}else t.buffs[type]=now+BUFFMS}
 function takeDrop(t,d,now){if(ws){if(now-d.pend>800){d.pend=now;if(ws.readyState==1)ws.send(JSON.stringify({t:'pickup',id:d.id}))}}else{removeDrop(d.id);applyBuff(t,ZONES[d.zone].t,now)}}
 function updDrops(now,dt){
@@ -458,14 +460,17 @@ b.onclick=async()=>{try{if(on()){await ex.call(d);}else{await req.call(e);try{aw
 b.addEventListener('touchstart',ev=>ev.stopPropagation(),{passive:true});
 const u=()=>{b.innerHTML=on()?'&#10005;':'&#9974;'};d.addEventListener('fullscreenchange',u);d.addEventListener('webkitfullscreenchange',u);})();
 
+function swapRz(t,v,send){v=!!v;if(t.rz===v)return;t.rz=v;scene.remove(t.mesh);t.mesh=makeTank(t.type,t.pa,t.sk,v);t.bi=0;t.fb=0;t.last=Math.min(t.last,performance.now()-RELOAD);t.chargeT=0;if(send&&ws&&ws.readyState==1)ws.send(JSON.stringify({t:'rz',v}))}
 (function(){const g=id=>document.getElementById(id),m=g('secm'),P=g('secp'),S=g('secs');
 const ren=()=>{g('tgaim').textContent=SEC.aim?'ON':'OFF';g('tgaim').className=SEC.aim?'on':'';g('tgfire').textContent=SEC.fire?'ON':'OFF';g('tgfire').className=SEC.fire?'on':'';[['pen','tgpen'],['rz','tgrz']].forEach(([k,id])=>{g(id).textContent=SEC[k]?'ON':'OFF';g(id).className=SEC[k]?'on':''})};
 const sv=()=>{try{localStorage.setItem('tdsec',JSON.stringify(SEC))}catch(_){}ren()};ren();
 const stop=ev=>ev.stopPropagation();
-g('secb').onclick=()=>{m.style.display='flex';P.style.display='';S.style.display='none';g('secpw').value='';g('secerr').textContent='';setTimeout(()=>g('secpw').focus(),50)};
-const ok=()=>{if(g('secpw').value===SEC_PASS){P.style.display='none';S.style.display=''}else g('secerr').textContent='Неверный пароль'};
+const un=()=>{try{return sessionStorage.getItem('tdun')==='1'}catch(_){return false}};
+const openS=()=>{m.style.display='flex';if(un()){P.style.display='none';S.style.display='';return}P.style.display='';S.style.display='none';g('secpw').value='';g('secerr').textContent='';setTimeout(()=>g('secpw').focus(),50)};
+g('secb').onclick=openS;g('hgb').onclick=e=>{e.stopPropagation();openS()};g('hgb').addEventListener('pointerdown',e=>e.stopPropagation());
+const ok=()=>{if(g('secpw').value===SEC_PASS){try{sessionStorage.setItem('tdun','1')}catch(_){}P.style.display='none';S.style.display=''}else g('secerr').textContent='Неверный пароль'};
 g('secok').onclick=ok;g('secpw').onkeydown=e=>{e.stopPropagation();if(e.key==='Enter')ok()};g('secpw').onkeyup=stop;
-g('tgaim').onclick=()=>{SEC.aim=!SEC.aim;sv()};g('tgfire').onclick=()=>{SEC.fire=!SEC.fire;sv()};g('tgpen').onclick=()=>{SEC.pen=!SEC.pen;sv()};g('tgrz').onclick=()=>{SEC.rz=!SEC.rz;sv();pvRefresh()};
+g('tgaim').onclick=()=>{SEC.aim=!SEC.aim;sv()};g('tgfire').onclick=()=>{SEC.fire=!SEC.fire;sv()};g('tgpen').onclick=()=>{SEC.pen=!SEC.pen;sv()};g('tgrz').onclick=()=>{SEC.rz=!SEC.rz;sv();if(mode=='play'&&me)swapRz(me,SEC.rz,true);else pvRefresh()};
 const cl=()=>{m.style.display='none'};g('secx1').onclick=cl;g('secx2').onclick=cl;
 })();
 </script></body></html>
