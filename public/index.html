@@ -6,6 +6,7 @@ html,body{margin:0;height:100%;overflow:hidden;background:#111;font-family:sans-
 canvas{display:block}
 #menu{overflow-y:auto}#menu,#msg{position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:rgba(0,0,0,.85);z-index:10;text-align:center;padding:10px}
 .card{display:inline-block;margin:6px;padding:12px;border:2px solid #555;border-radius:10px;width:140px;background:#222}
+.card{width:64px;padding:14px 0;font-size:24px;text-align:center;cursor:pointer}
 .card.sel{border-color:#ffb300;background:#332a00}
 input{font-size:20px;width:90px;padding:10px;border-radius:10px;border:2px solid #555;background:#222;color:#fff;text-align:center;text-transform:uppercase}
 button{font-size:20px;padding:12px 28px;border-radius:10px;border:0;background:#ffb300;margin-top:14px}
@@ -20,7 +21,7 @@ button{font-size:20px;padding:12px 28px;border-radius:10px;border:0;background:#
 </style></head><body>
 <div id="menu"><h2>TANKS 1v1</h2><canvas id="pv" width="480" height="260" style="width:240px;height:130px;border-radius:10px;background:#1a2230;margin:4px 0"></canvas>
 <div>Выбери танк (пушка Railgun):</div>
-<div><div class="card sel" id="c_hornet"><b>Hornet</b><br>Railgun<br>HP 150, средний</div><div class="card" id="c_wasp"><b>Wasp</b><br>Railgun<br>HP 100, быстрый</div></div>
+<div><div class="card sel" id="c_hornet" title="Hornet Railgun — HP 150, средний"><b>ХР</b></div><div class="card" id="c_wasp" title="Wasp Railgun — HP 100, быстрый"><b>ВР</b></div></div>
 <div style="margin-top:8px">Скин:</div><div style="margin:4px 0"><button id="sk_lg" class="card sel" style="width:auto;color:inherit;font-size:16px;padding:8px 18px;margin:0 4px">LG</button><button id="sk_xt" class="card" style="width:auto;color:inherit;font-size:16px;padding:8px 18px;margin:0 4px">XT</button><button id="sk_20" class="card" style="width:auto;color:inherit;font-size:16px;padding:8px 18px;margin:0 4px">2.0</button></div>
 <div style="margin-top:8px">Краска:</div><div id="paintrow" style="display:flex;align-items:center;justify-content:center;gap:10px;margin:4px 0"><button id="pprev" style="margin:0;padding:8px 16px;font-size:22px">&#9664;</button><div id="pview" style="width:166px;height:106px;border:2px solid #ffb300;border-radius:10px;background:#222;display:flex;align-items:center;justify-content:center;overflow:hidden;font-size:14px"></div><button id="pnext" style="margin:0;padding:8px 16px;font-size:22px">&#9654;</button></div><div id="pcnt" style="font-size:12px;color:#aaa;margin-bottom:6px"></div>
 <div id="mainBtns"><button id="mk">Создать комнату</button>
