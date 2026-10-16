@@ -13,6 +13,7 @@ button{font-size:20px;padding:12px 28px;border-radius:10px;border:0;background:#
 #hud{position:fixed;top:0;left:0;right:0;pointer-events:none;display:none}
 .bar{position:absolute;top:8px;width:36%;height:16px;background:#400;border:1px solid #fff}
 .bar i{display:block;height:100%;background:#4c4}
+#dmb{position:absolute;top:66px;right:calc(6px + env(safe-area-inset-right));display:none;font-size:11px;line-height:13px;background:rgba(0,0,0,.4);border-radius:6px;padding:3px 6px;text-align:left;min-width:92px;white-space:nowrap}#dmb .me{color:#ffb300;font-weight:bold}#dmb .dead{opacity:.45}#dmb b{float:right;margin-left:10px;font-weight:normal}#dmres{font-size:15px;line-height:20px;margin:6px 0 10px;text-align:left}#dmres .me{color:#ffb300;font-weight:bold}#dmres b{float:right;margin-left:24px;font-weight:normal}
 #score{position:absolute;top:28px;width:100%;text-align:center;font-size:18px}
 #joy{position:fixed;left:20px;bottom:20px;width:130px;height:130px;border-radius:50%;background:rgba(255,255,255,.15);display:none}
 #knob{position:absolute;left:45px;top:45px;width:40px;height:40px;border-radius:50%;background:rgba(255,255,255,.5)}
@@ -76,15 +77,16 @@ button{font-size:20px;padding:12px 28px;border-radius:10px;border:0;background:#
 <div class="lbl">Краска:</div><div id="paintrow"><button id="pprev">&#9664;</button><div id="pview"></div><button id="pnext">&#9654;</button></div><div id="pcnt" style="font-size:12px;color:#aaa;margin-bottom:6px"></div>
 <div id="mainBtns"><button id="mk">Создать комнату</button>
 <div id="coderow"><input id="code" maxlength="6" placeholder="КОД" autocapitalize="characters" autocomplete="off"><button id="jn">Войти по коду</button></div>
-<button id="go" style="background:#555;color:#fff;font-size:16px;padding:9px 20px">Играть с ботом</button></div>
+<button id="go" style="background:#555;color:#fff;font-size:16px;padding:9px 20px">Играть с ботом</button>
+<button id="dm" style="background:#555;color:#fff;font-size:16px;padding:9px 20px">Дезматч: 8 танков</button></div>
 <div id="lobby" style="display:none"><div style="color:#aaa">Код комнаты</div><div id="lcode" style="font-size:40px;letter-spacing:6px;font-weight:bold;color:#ffb300"></div>
 <div id="llink" style="font-size:12px;color:#8cf;word-break:break-all;max-width:300px;margin:4px auto"></div>
 <div><button id="cp" style="font-size:16px;padding:9px 16px">Копировать ссылку</button> <button id="sh" style="font-size:16px;padding:9px 16px">Поделиться</button></div>
 <div id="lst" style="margin-top:10px">Ожидание соперника...</div><button id="lc" style="background:#555;color:#fff;font-size:15px;padding:8px 18px">Отмена</button></div>
 <div id="info" style="margin-top:10px;color:#aaa"></div></div></div>
-<div id="msg" style="display:none;background:rgba(0,0,0,.6)"><h1 id="mt"></h1><button id="again">Ещё раз</button></div>
+<div id="msg" style="display:none;background:rgba(0,0,0,.6)"><h1 id="mt"></h1><div id="dmres"></div><button id="again">Ещё раз</button><button id="dmagain" style="display:none;margin-top:8px">Ещё раз</button></div>
 <div id="buffs" style="position:fixed;top:44px;left:0;right:0;text-align:center;font-size:14px;pointer-events:none;z-index:5"></div>
-<div id="hud"><div class="bar" style="left:8px"><i id="hp1" style="width:100%"></i></div><div class="bar" style="right:8px"><i id="hp2" style="width:100%;float:right"></i></div><div id="score"></div><button id="hgb" title="Settings">&#9881;</button></div>
+<div id="hud"><div class="bar" style="left:8px"><i id="hp1" style="width:100%"></i></div><div class="bar" style="right:8px"><i id="hp2" style="width:100%;float:right"></i></div><div id="score"></div><div id="dmb"></div><button id="hgb" title="Settings">&#9881;</button></div>
 <div id="hint" style="position:fixed;left:0;right:0;bottom:6px;text-align:center;font-size:12px;color:#fff9;display:none;pointer-events:none">WASD — движение · Z / X — башня · R / F — камера вверх / вниз · Пробел — огонь (заряд 0.5 с)</div>
 <div id="joy"><div id="knob"></div></div><div id="fire">FIRE</div><div id="rl"><i id="rli"></i></div>
 <script type="module">
@@ -246,6 +248,7 @@ function pvStop(){pvOn=false;pvS.remove(pvT);pvR.dispose();pvCv.style.display='n
 // state: yaw 0 => facing +z. tank a = hull yaw, ta = turret world yaw
 function mk(type,x,z,a,paint,skin,rz){return{pa:paint,sk:skin,rz:!!rz,bi:0,fb:0,type,x,z,a,ta:a,hp:TANKS[type].hp,max:TANKS[type].hp,mesh:makeTank(type,paint,skin,rz),kills:0,last:0,v:0,w:0,chargeT:0,flashT:0,buffs:{}}}
 let me,opp,mode='menu',idx=0,ws,bot=null,over=false;
+let DM=false,dmT=[];const DM_LIM=Math.max(1,+params.get('dmlim')||15),DM_N=8,DM_RESP=2500;
 function spawnPos(i){return i==0?[0,-24,0]:[0,24,Math.PI]}
 function resolve(t){t.x=Math.max(-A+R,Math.min(A-R,t.x));t.z=Math.max(-A+R,Math.min(A-R,t.z));
   for(const b of boxes){if(KN_FLY&&(t.y||0)>=b.h&&b.h<4)continue;const cx=Math.max(b.x-b.hw,Math.min(t.x,b.x+b.hw)),cz=Math.max(b.z-b.hd,Math.min(t.z,b.z+b.hd));
@@ -337,7 +340,7 @@ function showPaint(){const k=myPaint,v=$('pview');pvAnimStop();v.innerHTML=k?`<i
 const stepPaint=d=>{myPaint=PL[(PL.indexOf(myPaint)+d+PL.length)%PL.length];showPaint()};$('pprev').onclick=()=>stepPaint(-1);$('pnext').onclick=()=>stepPaint(1);showPaint();
 const setSkn=k=>{mySkn=k;$('sk_20').classList.toggle('sel',k=='20');$('sk_lg').classList.toggle('sel',k=='lg');$('sk_xt').classList.toggle('sel',k=='xt');pvRefresh()};$('sk_lg').onclick=()=>setSkn('lg');$('sk_xt').onclick=()=>setSkn('xt');$('sk_20').onclick=()=>setSkn('20');
 const loadWait=()=>Promise.race([loadP,new Promise(r=>setTimeout(r,6000))]);
-function begin(i,oppType,isBot,oppPaint,oppSkin,oppRz){drops.forEach(d=>scene.remove(d.sp));drops=[];nextDropAt=performance.now()+4000;pvStop();if(me){scene.remove(me.mesh);scene.remove(opp.mesh)}over=false;$('msg').style.display='none';idx=i;const sp=spawnPos(i),so=spawnPos(1-i);
+function begin(i,oppType,isBot,oppPaint,oppSkin,oppRz){DM=false;dmReset();drops.forEach(d=>scene.remove(d.sp));drops=[];nextDropAt=performance.now()+4000;pvStop();if(me){scene.remove(me.mesh);scene.remove(opp.mesh)}over=false;$('msg').style.display='none';idx=i;const sp=spawnPos(i),so=spawnPos(1-i);
  me=mk(myType,sp[0],sp[1],sp[2],myPaint,mySkn,SEC.rz);opp=mk(oppType,so[0],so[1],so[2],isBot?(Math.random()<.5?'':PAINTS[Math.floor(Math.random()*PAINTS.length)]):(oppPaint||''),isBot?'lg':(oppSkin==='xt'?'xt':oppSkin==='20'?'20':'lg'),!isBot&&oppRz===true);opp.isBot=isBot;
  mode='play';$('menu').style.display='none';['hud','joy','fire','rl'].forEach(id=>$(id).style.display='block');if(matchMedia('(pointer:fine)').matches)$('hint').style.display='block';
  me.last=performance.now()-RELOAD-800;opp.last=performance.now()-RELOAD-800;me.chargeT=opp.chargeT=0;
@@ -375,7 +378,7 @@ function connect(code,kind,tries=0){if(busy)return;busy=true;$('info').textConte
   my.onclose=()=>{if(ws!==my)return;busy=false;if(gotErr)return;if(mode=='play'&&!over)end('Связь потеряна');else if(mode!='play')showMenu('Связь потеряна')}})}
 $('mk').onclick=()=>connect(genCode(),'create');
 $('jn').onclick=()=>{const c=$('code').value.toUpperCase().replace(/[^A-Z0-9]/g,'');if(c.length<3)return $('info').textContent='Введи код комнаты';connect(c,'join')};
-$('go').onclick=startBot;
+$('go').onclick=startBot;$('dm').onclick=startDM;$('dmagain').onclick=()=>{beginDM()};
 $('lc').onclick=()=>{const w=ws;ws=null;if(w)w.close();showMenu('')};
 $('cp').onclick=async()=>{const l=linkFor($('lcode').textContent);try{await navigator.clipboard.writeText(l);$('cp').textContent='Скопировано ✓'}catch(e){const t=document.createElement('textarea');t.value=l;document.body.appendChild(t);t.select();try{document.execCommand('copy');$('cp').textContent='Скопировано ✓'}catch(_){prompt('Скопируй ссылку',l)}t.remove()}setTimeout(()=>$('cp').textContent='Копировать ссылку',2000)};
 $('sh').onclick=()=>{const l=linkFor($('lcode').textContent);if(navigator.share)navigator.share({title:'Tanks 1v1',text:'Заходи в танки 1на1! Код: '+$('lcode').textContent,url:l}).catch(()=>{});else $('cp').click()};
@@ -386,17 +389,55 @@ function died(){opp.kills++;if(ws)ws.send(JSON.stringify({t:'died'}));if(opp.isB
  const sp=spawnPos(idx);me.x=sp[0];me.z=sp[1];me.a=me.ta=sp[2];me.v=me.w=me.kx=me.kz=me.y=me.ky=me.tp=me.tv=0;me.chargeT=0;me.hp=me.max;me.last=performance.now()-RELOAD-800;me.buffs={};me.inv=performance.now()+3000;updHud()}
 function respawnOpp(){if(me.kills>=WIN)return end('ПОБЕДА! 🏆');opp.buffs={};opp.inv=performance.now()+3000;if(opp.isBot){const sp=spawnPos(1-idx);opp.x=sp[0];opp.z=sp[1];opp.v=opp.w=opp.kx=opp.kz=opp.y=opp.ky=opp.tp=opp.tv=0;opp.chargeT=0;opp.hp=opp.max;opp.last=performance.now()-RELOAD-800}updHud()}
 function end(t){over=true;$('mt').textContent=t;$('msg').style.display='flex'}
-function updHud(){$('hp1').style.width=100*me.hp/me.max+'%';$('hp2').style.width=100*opp.hp/opp.max+'%';
+function updHud(){if(DM)return dmHud();$('hp1').style.width=100*me.hp/me.max+'%';$('hp2').style.width=100*opp.hp/opp.max+'%';
  $('score').textContent=`Ты ${me.kills} : ${opp.kills} ${opp.isBot?'Бот':'Соперник'} (до ${WIN})`}
-function botAI(dt,now){const o=opp,dx=me.x-o.x,dz=me.z-o.z,d=Math.hypot(dx,dz),want=Math.atan2(dx,dz);
+function botAI(o,tg,dt,now){const dx=tg.x-o.x,dz=tg.z-o.z,d=Math.hypot(dx,dz)||1e-3,want=Math.atan2(dx,dz),sg=o.sg||1;
  let da=Math.atan2(Math.sin(want-o.ta),Math.cos(want-o.ta));o.ta+=Math.max(-1.5*dt,Math.min(1.5*dt,da));
  let mvx=0,mvz=0;
- if(d>14){mvx=dx/d;mvz=dz/d}else if(d<8){mvx=-dx/d;mvz=-dz/d}else{mvx=dz/d;mvz=-dx/d}
+ if(d>14){mvx=dx/d;mvz=dz/d}else if(d<8){mvx=-dx/d;mvz=-dz/d}else{mvx=dz/d*sg;mvz=-dx/d*sg}
  {const bd=nearestDrop(o);if(bd&&bd.d<22&&bd.d>.5){mvx=(bd.x-o.x)/bd.d;mvz=(bd.z-o.z)/bd.d}}
  const diff=Math.atan2(Math.sin(Math.atan2(mvx,mvz)-o.a),Math.cos(Math.atan2(mvx,mvz)-o.a));
  drive(o,-Math.max(-1,Math.min(1,diff*2.5)),Math.abs(diff)<1.2?.6:0,dt,TANKS[o.type]);
- if(o.chargeT){if(now-o.chargeT>=CHARGE&&o.hp>0){o.last=now;o.ta+=(Math.random()-.5)*.12;const s=shoot(o,me,false);if(me.hp>0&&hitCheck(s,me)){hitFx(me,s.dx,s.dz,o.rz);knock(me,s.dx,s.dz,o.rz);damage(me,dmgFor(o,me));if(me.hp<=0)died()}updHud()}}
- else if(now-o.last>RELOAD+800&&Math.abs(da)<.12&&me.hp>0)o.chargeT=now}
+ if(o.chargeT){if(now-o.chargeT>=CHARGE&&o.hp>0){o.last=now;o.ta+=(Math.random()-.5)*.12;if(DM)dmFire(o);else{const s=shoot(o,tg,false);if(tg.hp>0&&hitCheck(s,tg)){hitFx(tg,s.dx,s.dz,o.rz);knock(tg,s.dx,s.dz,o.rz);damage(tg,dmgFor(o,tg));if(tg.hp<=0)died()}}updHud()}}
+ else if(now-o.last>RELOAD+800&&Math.abs(da)<.12&&tg.hp>0&&(!DM||wallDist(o.x,o.z,Math.sin(o.ta),Math.cos(o.ta))>=d-R))o.chargeT=now}
+/* ---- DEATHMATCH (single player): player + 7 bots, free-for-all, kill limit DM_LIM ---- */
+function dmReset(){dmT.forEach(t=>{if(t.mesh)scene.remove(t.mesh)});dmT=[];zoneMeshes.forEach(m=>m.visible=true);$('dmb').style.display='none';$('hp2').parentNode.style.display='';$('dmres').innerHTML='';$('again').textContent='Ещё раз';$('dmagain').style.display='none'}
+function dmSpawn(t){const C=[];for(let i=0;i<16;i++){const a=i/16*Math.PI*2+.2;C.push([Math.sin(a)*23,Math.cos(a)*23])}for(let i=0;i<8;i++){const a=i/8*Math.PI*2+.6;C.push([Math.sin(a)*11,Math.cos(a)*11])}
+ let best=null,bs=-1;for(const[x,z]of C){const q={x,z};resolve(q);if(Math.hypot(q.x-x,q.z-z)>.01)continue;let md=1e9;for(const o of dmT)if(o!==t&&o.placed&&o.hp>0)md=Math.min(md,Math.hypot(o.x-x,o.z-z));const sc=Math.min(md,60)+Math.random()*6;if(sc>bs){bs=sc;best=[x,z]}}
+ if(!best)best=[0,-24];t.x=best[0];t.z=best[1];t.a=t.ta=Math.atan2(-t.x,-t.z);t.placed=true}
+function dmClear(t){t.v=t.w=t.kx=t.kz=t.y=t.ky=t.tp=t.tv=0;t.fa=false;t.chargeT=0;t.hitT=0}
+function dmRespawn(t,now){dmClear(t);dmSpawn(t);t.hp=t.max;t.buffs={};t.inv=performance.now()+3000;t.last=performance.now()-RELOAD;t._tpx=undefined;t.tgt=null;dmHud(true)}
+function dmKill(v,k){v.deaths=(v.deaths||0)+1;k.kills++;dmClear(v);v.respT=performance.now()+DM_RESP;v.inv=0;dmHud(true);if(k.kills>=DM_LIM)dmEnd(k)}
+function dmHit(sh,tg,s){hitFx(tg,s.dx,s.dz,sh.rz);knock(tg,s.dx,s.dz,sh.rz);damage(tg,dmgFor(sh,tg));if(tg.hp<=0)dmKill(tg,sh)}
+function dmFire(sh){const bi=sh.rz?(sh.bi||0):0,[ox,oy,oz,dx,dz]=muzzlePos(sh,bi),len=(sh===me&&SEC.pen)?RANGE:wallDist(ox,oz,dx,dz),n=performance.now();
+ let tg=null,bp=1e9;for(const t of dmT){if(t===sh||t.hp<=0||t.inv>n)continue;const p=rayCircle(ox,oz,dx,dz,t.x,t.z,R);if(p!==null&&p<=len&&p<bp){bp=p;tg=t}}
+ const s=shoot(sh,tg,false);if(tg&&hitCheck(s,tg))dmHit(sh,tg,s)}
+function dmPickOpp(){let b=null,bd=1e9;for(const t of dmT){if(t===me||t.hp<=0||t.inv>performance.now())continue;const d=Math.hypot(t.x-me.x,t.z-me.z);if(d<bd){bd=d;b=t}}if(b)opp=b}
+function dmTarget(t,now){let g=t.tgt;if(g&&g.hp>0&&!(g.inv>now)&&now<t.tgT)return g;let b=null,bs=1e9;
+ for(const o of dmT){if(o===t||o.hp<=0||o.inv>now)continue;const dx=o.x-t.x,dz=o.z-t.z,d=Math.hypot(dx,dz)||1e-3,sc=d+(wallDist(t.x,t.z,dx/d,dz/d)<d-R?14:0)+Math.random()*5;if(sc<bs){bs=sc;b=o}}
+ t.tgt=b;t.tgT=now+500+Math.random()*700;if(Math.random()<.35)t.sg=-(t.sg||1);return b}
+function dmStep(dt,now){
+ for(const t of dmT){if(t.hp<=0){if(performance.now()>=t.respT)dmRespawn(t,now);continue}stepKnock(t,dt)}
+ for(const t of dmT){if(t===me||t.hp<=0)continue;const g=dmTarget(t,now);if(g)botAI(t,g,dt,now)}
+ for(let i=0;i<dmT.length;i++){const a=dmT[i];if(a.hp<=0)continue;for(let j=i+1;j<dmT.length;j++){const b=dmT[j];if(b.hp<=0||airborne(a)||airborne(b))continue;const dx=b.x-a.x,dz=b.z-a.z,d=Math.hypot(dx,dz),m=R*1.8;if(d<m&&d>1e-3){const k=(m-d)/2/d;a.x-=dx*k;a.z-=dz*k;b.x+=dx*k;b.z+=dz*k;resolve(a);resolve(b)}}}
+ dmHud()}
+let dmHtml='';
+function dmRows(){return dmT.slice().sort((a,b)=>b.kills-a.kills||(a.deaths||0)-(b.deaths||0)||a.n-b.n)}
+function dmHud(force){if(!DM||!me)return;$('hp1').style.width=100*Math.max(0,me.hp)/me.max+'%';
+ const h=dmRows().map(t=>`<div class="${t===me?'me':''} ${t.hp<=0?'dead':''}">${t===me?'Ты':'Бот '+t.n}<b>${t.kills}/${t.deaths||0}</b></div>`).join('');
+ if(h!==dmHtml||force){dmHtml=h;$('dmb').innerHTML=h}$('score').textContent=`DM · до ${DM_LIM} убийств · Ты ${me.kills}/${me.deaths||0}${me.hp<=0?' · респаун…':''}`}
+function dmEnd(w){if(over)return;over=true;const win=w===me;$('again').textContent='В меню';$('dmagain').style.display='inline-block';
+ $('dmres').innerHTML=dmRows().map((t,i)=>`<div class="${t===me?'me':''}">${i+1}. ${t===me?'Ты':'Бот '+t.n}<b>${t.kills} / ${t.deaths||0}</b></div>`).join('');
+ $('mt').textContent=win?'ПОБЕДА! 🏆':'Победил Бот '+w.n+' 🏆';$('msg').style.display='flex'}
+function beginDM(){DM=true;dmReset();drops.forEach(d=>scene.remove(d.sp));drops=[];pvStop();if(me){scene.remove(me.mesh);if(opp)scene.remove(opp.mesh)}over=false;$('msg').style.display='none';idx=0;
+ zoneMeshes.forEach(m=>m.visible=false);
+ me=mk(myType,0,0,0,myPaint,mySkn,SEC.rz);me.n=0;dmT=[me];
+ for(let i=1;i<DM_N;i++){const t=mk(Math.random()<.5?'hornet':'wasp',0,0,0,Math.random()<.4?'':PAINTS[Math.floor(Math.random()*PAINTS.length)],'lg',false);t.isBot=true;t.n=i;t.sg=Math.random()<.5?1:-1;dmT.push(t)}
+ dmT.forEach(t=>{t.deaths=0;dmSpawn(t);t.inv=performance.now()+3000;t.last=performance.now()-RELOAD-(t===me?800:Math.random()*600)});
+ opp=dmT[1];dmPickOpp();
+ mode='play';$('menu').style.display='none';['hud','joy','fire','rl'].forEach(id=>$(id).style.display='block');$('hp2').parentNode.style.display='none';$('dmb').style.display='block';if(matchMedia('(pointer:fine)').matches)$('hint').style.display='block';
+ dmHtml='';dmHud(true)}
+function startDM(){if(busy)return;busy=true;$('info').textContent='Загрузка…';loadWait().then(()=>{busy=false;beginDM()})}
 // ---- bonus drops ----
 const ZONES=[{t:'speed',x:-20,z:-4},{t:'repair',x:20,z:4},{t:'defense',x:-6,z:10},{t:'damage',x:6,z:-10}];
 const BCOL={speed:0xffee33,defense:0xffe9a8,damage:0xff3322},BN={speed:'Ускорение',defense:'Защита',damage:'Урон'},BUFFMS=30000;
@@ -413,7 +454,7 @@ function dmgFor(sh,tg){const n=performance.now();return DMG*(sh.rz?RZ_DMG:1)*(sh
 function applyBuff(t,type,now){if(type=='repair'){t.hp=Math.min(t.max,t.hp+t.max*.5);updHud()}else t.buffs[type]=now+BUFFMS}
 function takeDrop(t,d,now){if(ws){if(now-d.pend>800){d.pend=now;if(ws.readyState==1)ws.send(JSON.stringify({t:'pickup',id:d.id}))}}else{removeDrop(d.id);applyBuff(t,ZONES[d.zone].t,now)}}
 function updDrops(now,dt){
- zoneMeshes.forEach((m,i)=>{const k=.5+.5*Math.sin(now/350+i);m.material.opacity=.55+.4*k;m.scale.setScalar(1+.06*k)});
+ zoneMeshes.forEach((m,i)=>{const k=.5+.5*Math.sin(now/350+i);m.material.opacity=.55+.4*k;m.scale.setScalar(1+.06*k)});if(DM)return;
  if(!ws&&opp&&opp.isBot&&now>nextDropAt){const free=[0,1,2,3].filter(z=>!drops.some(d=>d.zone==z));if(free.length)addDrop(++localId,free[Math.floor(Math.random()*free.length)]);nextDropAt=now+15000+Math.random()*5000}
  for(let i=drops.length-1;i>=0;i--){const d=drops[i],ft=(now-d.t0)/1000,z=ZONES[d.zone];
   if(!ws&&ft>30){removeDrop(d.id);continue}
@@ -437,9 +478,10 @@ function nearestDrop(o){let best=null,bd=1e9;for(const d of drops){const z=ZONES
 const now0=()=>performance.now();
 let prev=performance.now(),sendT=0;
 function loop(now){requestAnimationFrame(loop);const dt=Math.min(.05,(now-prev)/1000);prev=now;
- for(let i=beams.length-1;i>=0;i--){const b=beams[i];b.t+=dt;b.m.material.opacity=Math.max(0,.9-b.t*2.5);if(b.t>.4){scene.remove(b.m);beams.splice(i,1)}}
+ for(let i=beams.length-1;i>=0;i--){const b=beams[i];b.t+=dt;b.m.material.opacity=Math.max(0,.9-b.t*2.5);if(b.t>.4){scene.remove(b.m);b.m.geometry.dispose();b.m.material.dispose();beams.splice(i,1)}}
  if(mode=='play'&&!over){
-  let ix=inp.x+(keys.KeyD?1:0)-(keys.KeyA?1:0),iy=inp.y+(keys.KeyW?1:0)-(keys.KeyS?1:0);
+  if(DM)dmPickOpp();
+  let ix=inp.x+(keys.KeyD?1:0)-(keys.KeyA?1:0),iy=inp.y+(keys.KeyW?1:0)-(keys.KeyS?1:0);if(DM&&me.hp<=0)ix=iy=0;
   drive(me,ix,iy,dt,TANKS[me.type]);
   if(keys.ArrowLeft||keys.KeyZ)me.ta+=2*dt;if(keys.ArrowRight||keys.KeyX)me.ta-=2*dt;
   if(keys.KeyR||keys.ArrowUp)camPitch=Math.max(.08,camPitch-1.2*dt);if(keys.KeyF||keys.ArrowDown)camPitch=Math.min(1.25,camPitch+1.2*dt);
@@ -453,27 +495,27 @@ function loop(now){requestAnimationFrame(loop);const dt=Math.min(.05,(now-prev)/
   const wantFire=fireReq||fireHeld||keys.Space||autoF;
   if(me.hp<=0)me.chargeT=0;
   if(me.chargeT){const f=Math.min(1,(now-me.chargeT)/chgOf(me));$('rl').classList.add('ch');$('rli').style.width=f*100+'%';
-   if(f>=1){me.last=now;const s=shoot(me,opp,true);if(hitCheck(s,opp))hitFx(opp,s.dx,s.dz,me.rz);if(hitCheck(s,opp)&&opp.isBot){knock(opp,s.dx,s.dz,me.rz);damage(opp,dmgFor(me,opp));if(opp.hp<=0){me.kills++;respawnOpp()}updHud()}}}
+   if(f>=1){me.last=now;if(DM)dmFire(me);else{const s=shoot(me,opp,true);if(hitCheck(s,opp))hitFx(opp,s.dx,s.dz,me.rz);if(hitCheck(s,opp)&&opp.isBot){knock(opp,s.dx,s.dz,me.rz);damage(opp,dmgFor(me,opp));if(opp.hp<=0){me.kills++;respawnOpp()}updHud()}}}}
   else{const rl=Math.min(1,(now-me.last)/relOf(me));$('rl').classList.remove('ch');$('rli').style.width=rl*100+'%';
    if(wantFire&&rl>=1&&me.hp>0){me.chargeT=now;if(ws&&ws.readyState==1)ws.send(JSON.stringify({t:'charge'}))}}
   fireReq=false;
-  stepKnock(me,dt);if(opp.isBot)stepKnock(opp,dt);
-  if(opp.isBot)botAI(dt,now);else if(opp.tx!==undefined){opp.x+=(opp.tx-opp.x)*Math.min(1,dt*15);opp.z+=(opp.tz-opp.z)*Math.min(1,dt*15);opp.a=opp.ta2;opp.ta=opp.tta;{const py=opp.y||0;opp.y=py+((opp.ty||0)-py)*Math.min(1,dt*15);const TP=Math.PI*2,cur=opp.tp||0;let df=((opp.tfp||0)-cur)%TP;if(df>Math.PI)df-=TP;if(df<-Math.PI)df+=TP;opp.tp=(opp.y>.03||opp.tfp)?cur+df*Math.min(1,dt*25):0;if(!opp.tfp&&Math.abs(opp.tp)<.01)opp.tp=0}}
+  if(DM)dmStep(dt,now);else{stepKnock(me,dt);if(opp.isBot)stepKnock(opp,dt);
+  if(opp.isBot)botAI(opp,me,dt,now);else if(opp.tx!==undefined){opp.x+=(opp.tx-opp.x)*Math.min(1,dt*15);opp.z+=(opp.tz-opp.z)*Math.min(1,dt*15);opp.a=opp.ta2;opp.ta=opp.tta;{const py=opp.y||0;opp.y=py+((opp.ty||0)-py)*Math.min(1,dt*15);const TP=Math.PI*2,cur=opp.tp||0;let df=((opp.tfp||0)-cur)%TP;if(df>Math.PI)df-=TP;if(df<-Math.PI)df+=TP;opp.tp=(opp.y>.03||opp.tfp)?cur+df*Math.min(1,dt*25):0;if(!opp.tfp&&Math.abs(opp.tp)<.01)opp.tp=0}}}
   sendT+=dt;if(ws&&ws.readyState==1&&sendT>.05){sendT=0;ws.send(JSON.stringify({t:'s',x:me.x,z:me.z,y:+(me.y||0).toFixed(2),a:me.a,ta:me.ta,hp:me.hp,f:+((me.tp||0)%(Math.PI*2)).toFixed(3),kx:+(me.kdx||0).toFixed(2),kz:+(me.kdz||0).toFixed(2)}));}
-  if(!opp.isBot)updHud();
+  if(!DM&&!opp.isBot)updHud();
  }
- if(me){for(const t of[me,opp]){const nw=performance.now();let ox=0,oz=0,ux=0,uz=0,tl=0;
+ if(me){for(const t of(DM?dmT:[me,opp])){const nw=performance.now();let ox=0,oz=0,ux=0,uz=0,tl=0;
   {const rc=recoil(t,nw);if(rc>0){const ax=Math.sin(t.ta),az=Math.cos(t.ta);ox-=ax*.35*rc;oz-=az*.35*rc;tl+=rc;ux+=ax*rc;uz+=az*rc}}
   {const rc=hitRec(t,nw);if(rc>0){const ax=-t.hitDx,az=-t.hitDz;ox-=ax*.3*rc;oz-=az*.3*rc;tl+=rc*(KNOCK&&t.hitRz?1.4:1);ux+=ax*rc;uz+=az*rc}}
   t.mesh.position.set(t.x+ox,t.y||0,t.z+oz);t.mesh.quaternion.setFromAxisAngle(YAX,t.a);
   if(t.tp){const kx=t.kdx||0,kz=t.kdz||0,L=Math.hypot(kx,kz)||1;/* shooter-facing side lifts: lift dir u=-k */TQ.setFromAxisAngle(TAX.set(kz/L,0,-kx/L),t.tp);t.mesh.quaternion.premultiply(TQ);/* pivot about body centre, not the tracks */{const c=KN_PIVOT,q=TQ,v=PV.set(0,c,0).applyQuaternion(q);t.mesh.position.x+=0-v.x;t.mesh.position.y+=c-v.y;t.mesh.position.z+=0-v.z}}
   if(tl>0){const L=Math.hypot(ux,uz)||1,ax=ux/L,az=uz/L,ang=Math.min(tl,1.8)*.15;/* model forward=+Z; Rx(-ang) lifts +Z; axis = right of aim dir (cos,0,-sin)*/ TQ.setFromAxisAngle(TAX.set(az,0,-ax),-ang);t.mesh.quaternion.premultiply(TQ)}
   updTrk(t);  t.mesh.tur.rotation.y=t.ta-t.a;t.mesh.visible=t.hp>0}
-  for(const t of[me,opp]){if(t.inv>now)t.mesh.visible=Math.floor(now/120)%2==0;else if(t.inv){t.inv=0;t.mesh.visible=true}updGlow(t,now);updAura(t,now);updIcons(t,now)}updDrops(now,dt);updBuffs(now);
+  for(const t of(DM?dmT:[me,opp])){if(t.inv>now)t.mesh.visible=Math.floor(now/120)%2==0;else if(t.inv){t.inv=0;t.mesh.visible=true}updGlow(t,now);updAura(t,now);updIcons(t,now)}updDrops(now,dt);updBuffs(now);
   const cp=Math.cos(camPitch),sp=Math.sin(camPitch),D=9,sx=Math.sin(me.ta),sz=Math.cos(me.ta);
   cam.position.set(Math.max(-A-4,Math.min(A+4,me.x-sx*cp*D)),1.2+sp*D+(me.y||0)*.6,Math.max(-A-4,Math.min(A+4,me.z-sz*cp*D)));{const sk=performance.now()-shakeT;if(sk<300){const a=shakeA*(1-sk/300)**2;cam.position.x+=(Math.random()-.5)*a;cam.position.y+=(Math.random()-.5)*a;cam.position.z+=(Math.random()-.5)*a}}cam.lookAt(me.x+sx*5,1.2,me.z+sz*5);}
  else{cam.position.set(0,25,-35);cam.lookAt(0,0,0)}
- animTick(now,[me&&me.mesh,opp&&opp.mesh]);renderer.render(scene,cam)}
+ animTick(now,DM?dmT.map(t=>t.mesh):[me&&me.mesh,opp&&opp.mesh]);renderer.render(scene,cam)}
 requestAnimationFrame(loop);
 
 (function(){const b=document.getElementById('fsb'),d=document,e=d.documentElement;
