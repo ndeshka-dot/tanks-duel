@@ -122,10 +122,10 @@ function makeProcTank(type,skin){if(type=='wasp')return makeWasp(skin||'redgold'
 
 // ---- real models (GLTF) with procedural fallback ----
 const MODELS={};const ML=new GLTFLoader();
-const MDEF={hornet:{url:'models/m3/hornet.gltf',len:3.7},wasp:{url:'models/m3/wasp.gltf',len:3.5},tur:{url:'models/m3/turret.gltf'}};
+const MDEF={hornet:{url:'models/m3/hornet.gltf',len:3.7},wasp:{url:'models/m3/wasp.gltf',len:3.5},tur:{url:'models/m3/flash.gltf'}};
 const IMG={};
 const loadImg=(k,u)=>new Promise(r=>{const i=new Image();i.onload=()=>{IMG[k]=i;r()};i.onerror=r;i.src=u});
-const IMGS={};PAINTS.forEach(p=>IMGS[p]='models/paints/'+p+'.jpg');['wasp','hornet','turret'].forEach(k=>{IMGS[k+'_l']='models/m3/'+k+'_light.jpg';IMGS[k+'_d']='models/m3/'+k+'_det.png'});
+const IMGS={};PAINTS.forEach(p=>IMGS[p]='models/paints/'+p+'.jpg');['wasp','hornet','flash'].forEach(k=>{IMGS[k+'_l']='models/m3/'+k+'_light.jpg';IMGS[k+'_d']='models/m3/'+k+'_det.png'});
 const loadP=Promise.all(Object.keys(MDEF).map(k=>new Promise(r=>{ML.load(MDEF[k].url,g=>{MODELS[k]=g.scene;r()},undefined,()=>r())})).concat(Object.keys(IMGS).map(k=>loadImg(k,IMGS[k])))).catch(()=>{});
 const paintCache={};
 function paintTex(key,paint){const ck=key+'/'+paint;if(paintCache[ck])return paintCache[ck];
@@ -144,7 +144,7 @@ function makeModelTank(type,paint){const src=MODELS[type],ts=MODELS.tur;if(!src|
  const hb=new THREE.Box3().setFromObject(root),sz=hb.getSize(new THREE.Vector3()),sc=def.len/sz.z,yoff=-hb.min.y*sc;
  applyPaint(root,type,paint);root.scale.setScalar(sc);root.position.y=yoff;g.add(root);
  const tur=new THREE.Group();tur.position.set(mp.x*sc,yoff+mp.y*sc,mp.z*sc);g.add(tur);
- const t=ts.clone(true),mz=t.getObjectByName('muzzle'),mzp=mz?mz.position.z:4.13;t.traverse(o=>{if(o.isMesh)o.material=o.material.clone()});applyPaint(t,'turret',paint);const tb=new THREE.Box3().setFromObject(t);t.scale.setScalar(sc);tur.add(t);
+ const t=ts.clone(true),mz=t.getObjectByName('muzzle'),mzp=mz?mz.position.z:4.13;t.traverse(o=>{if(o.isMesh)o.material=o.material.clone()});applyPaint(t,'flash',paint);const tb=new THREE.Box3().setFromObject(t);t.scale.setScalar(sc);tur.add(t);
  g.muz={px:tur.position.x,pz:tur.position.z,tip:tb.max.z*sc,y:tur.position.y+(mz?mz.position.y:.45)*sc};g.rec=t;g.tur=tur;g.hull=root;scene.add(g);return g}
 let glowTex=null;
 function addGlow(g){if(!glowTex){const c=document.createElement('canvas');c.width=c.height=64;const x=c.getContext('2d'),gr=x.createRadialGradient(32,32,0,32,32,32);gr.addColorStop(0,'rgba(255,255,255,1)');gr.addColorStop(.3,'rgba(160,240,255,.7)');gr.addColorStop(1,'rgba(0,150,255,0)');x.fillStyle=gr;x.fillRect(0,0,64,64);glowTex=new THREE.CanvasTexture(c)}
