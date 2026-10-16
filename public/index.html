@@ -12,7 +12,7 @@ input{font-size:20px;width:90px;padding:10px;border-radius:10px;border:2px solid
 button{font-size:20px;padding:12px 28px;border-radius:10px;border:0;background:#ffb300;margin-top:14px}
 #hud{position:fixed;top:0;left:0;right:0;pointer-events:none;display:none}
 .bar{position:absolute;top:8px;width:36%;height:16px;background:#400;border:1px solid #fff}
-.bar i{display:block;height:100%;background:#4c4}
+.bar i{display:block;height:100%;background:#4c4}.bar[data-t]::after{content:attr(data-t);position:absolute;left:0;right:0;top:0;line-height:16px;font-size:11px;text-align:center;color:#fff;text-shadow:0 0 2px #000}
 #dmb{position:absolute;top:66px;right:calc(6px + env(safe-area-inset-right));display:none;font-size:11px;line-height:13px;background:rgba(0,0,0,.4);border-radius:6px;padding:3px 6px;text-align:left;min-width:92px;white-space:nowrap}#dmb .me{color:#ffb300;font-weight:bold}#dmb .dead{opacity:.45}#dmb b{float:right;margin-left:10px;font-weight:normal}#dmres{font-size:15px;line-height:20px;margin:6px 0 10px;text-align:left}#dmres .me{color:#ffb300;font-weight:bold}#dmres b{float:right;margin-left:24px;font-weight:normal}
 #score{position:absolute;top:28px;width:100%;text-align:center;font-size:18px}
 #joy{position:fixed;left:20px;bottom:20px;width:130px;height:130px;border-radius:50%;background:rgba(255,255,255,.15);display:none}
@@ -69,7 +69,7 @@ button{font-size:20px;padding:12px 28px;border-radius:10px;border:0;background:#
 </style></head><body>
 <button id="fsb" title="Fullscreen" style="display:none">&#9974;</button>
 <div id="secm"><div class="bx"><div id="secp"><h3>Пароль</h3><input id="secpw" type="password" inputmode="numeric" autocomplete="off"><div id="secerr"></div><div><button id="secok">OK</button><button id="secx1" style="background:#555;color:#fff">Отмена</button></div></div>
-<div id="secs" style="display:none"><h3>Секретные настройки</h3><div class="tg"><span>Aim assist</span><button id="tgaim"></button></div><div class="tg"><span>Auto fire</span><button id="tgfire"></button></div><div class="tg"><span>Прострел стен</span><button id="tgpen"></button></div><div class="tg"><span>RAZEB (Terminator)</span><button id="tgrz"></button></div><div style="font-size:12px;opacity:.7;margin:4px 0">Все настройки действуют сразу, в том числе в бою</div><button id="secx2" style="background:#555;color:#fff">Закрыть</button></div></div></div>
+<div id="secs" style="display:none"><h3>Секретные настройки</h3><div class="tg"><span>Aim assist</span><button id="tgaim"></button></div><div class="tg"><span>Auto fire</span><button id="tgfire"></button></div><div class="tg"><span>Прострел стен</span><button id="tgpen"></button></div><div class="tg"><span>RAZEB (Terminator)</span><button id="tgrz"></button></div><div class="tg"><span>Джаггернаут (HP ×20)</span><button id="tgjug"></button></div><div style="font-size:12px;opacity:.7;margin:4px 0">Всё действует сразу, кроме Джаггернаута: он включается со следующего боя</div><button id="secx2" style="background:#555;color:#fff">Закрыть</button></div></div></div>
 <div id="menu"><button id="secb" title="Settings">&#9881;</button><div id="mleft"><h2>TANKS 1v1</h2><canvas id="pv" width="480" height="260"></canvas></div><div id="mright">
 <div class="lbl">Танк (Railgun):</div>
 <div class="skrow" id="tkrow"><div class="card sel" id="c_hornet" title="Hornet Railgun — HP 150, средний"><b>ХР</b></div><div class="card" id="c_wasp" title="Wasp Railgun — HP 100, быстрый"><b>ВР</b></div></div>
@@ -92,11 +92,12 @@ button{font-size:20px;padding:12px 28px;border-radius:10px;border:0;background:#
 <script type="module">
 import * as THREE from './three.module.min.js';
 import {GLTFLoader} from './lib/GLTFLoader.js';
-const TANKS={hornet:{hp:150,speed:6,turn:1.8,acc:12,drag:10,tacc:8,color:0x6b7a3a},wasp:{hp:100,speed:10,turn:2.8,acc:17,drag:20,tacc:12,color:0xc9a227}};
+const TANKS={jug:{hp:3000,speed:5,turn:1.4,acc:9,drag:9,tacc:7,color:0x8a8a8a},hornet:{hp:150,speed:6,turn:1.8,acc:12,drag:10,tacc:8,color:0x6b7a3a},wasp:{hp:100,speed:10,turn:2.8,acc:17,drag:20,tacc:12,color:0xc9a227}};
 const RELOAD=2000,CHARGE=500,RZ_RATE=8,RZ_DMG=1/3;/* RAZEB: reload & charge divided by RZ_RATE */const relOf=t=>t.rz?RELOAD/RZ_RATE:RELOAD,chgOf=t=>t.rz?CHARGE/RZ_RATE:CHARGE;const DMG=50,RANGE=80,A=30,WIN=3,R=1.3;
-const SEC=(()=>{try{return Object.assign({aim:false,fire:false,pen:false,rz:false},JSON.parse(localStorage.getItem('tdsec')||'{}'))}catch(_){return{aim:false,fire:false,pen:false,rz:false}}})();
+const SEC=(()=>{try{return Object.assign({aim:false,fire:false,pen:false,rz:false,jug:false},JSON.parse(localStorage.getItem('tdsec')||'{}'))}catch(_){return{aim:false,fire:false,pen:false,rz:false,jug:false}}})();
 const params=new URLSearchParams(location.search);
 let room=(params.get('room')||'').toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,6);
+const eT=()=>SEC.jug?'jug':myType;/* effective hull: Juggernaut (HP 20x hornet) when secret toggle is on */
 let myType='hornet',mySkin='silver',myPaint='',mySkn='lg';const PAINTS=['p0','p1','p2','p3','p4','p5','p6','p7','p8','p9','p10','p11'];
 const $=id=>document.getElementById(id);
 ['hornet','wasp'].forEach(k=>$('c_'+k).onclick=()=>{myType=k;pvRefresh();$('c_hornet').classList.toggle('sel',k=='hornet');$('c_wasp').classList.toggle('sel',k=='wasp')});
@@ -177,10 +178,10 @@ function makeProcTank(type,skin){if(type=='wasp')return makeWasp(skin||'redgold'
 
 // ---- real models (GLTF) with procedural fallback ----
 const MODELS={};const ML=new GLTFLoader();
-const MDEF={hornet:{url:'models/m3/hornet.gltf',len:3.7},wasp:{url:'models/m3/wasp.gltf',len:3.5},tur:{url:'models/m3/turret.gltf'},hornet_xt:{url:'models/m3/hornet_xt.gltf?v=5',len:3.7},wasp_xt:{url:'models/m3/wasp_xt.gltf?v=5',len:3.5},tur_xt:{url:'models/m3/flash.gltf'},hornet_20:{url:'models/m3/hornet_20.gltf?v=5',len:3.7},wasp_20:{url:'models/m3/wasp_20.gltf?v=5',len:3.5},tur_20:{url:'models/m3/rail20.gltf'},tur_rz:{url:'models/m3/term20.gltf?v=4'}};
+const MDEF={hornet:{url:'models/m3/hornet.gltf',len:3.7},wasp:{url:'models/m3/wasp.gltf',len:3.5},tur:{url:'models/m3/turret.gltf'},hornet_xt:{url:'models/m3/hornet_xt.gltf?v=5',len:3.7},wasp_xt:{url:'models/m3/wasp_xt.gltf?v=5',len:3.5},tur_xt:{url:'models/m3/flash.gltf'},hornet_20:{url:'models/m3/hornet_20.gltf?v=5',len:3.7},wasp_20:{url:'models/m3/wasp_20.gltf?v=5',len:3.5},tur_20:{url:'models/m3/rail20.gltf'},tur_rz:{url:'models/m3/term20.gltf?v=4'},jug:{url:'models/m3/jug_v1.gltf?v=1',len:5.15}};
 const IMG={};
 const loadImg=(k,u)=>new Promise(r=>{const i=new Image();i.onload=()=>{IMG[k]=i;r()};i.onerror=r;i.src=u});
-const IMGS={};PAINTS.forEach(p=>{if(p!=='p11')IMGS[p]='models/paints/'+p+'.jpg'});['wasp','hornet','turret','wasp_xt','hornet_xt','flash','wasp_20','hornet_20','rail20','term20'].forEach(k=>{const q=k==='term20'?'?v=3':'';IMGS[k+'_l']='models/m3/'+k+'_light.jpg'+q;IMGS[k+'_d']='models/m3/'+k+'_det.png'+q});
+const IMGS={};PAINTS.forEach(p=>{if(p!=='p11')IMGS[p]='models/paints/'+p+'.jpg'});['wasp','hornet','turret','wasp_xt','hornet_xt','flash','wasp_20','hornet_20','rail20','term20','jug'].forEach(k=>{const q=k==='term20'?'?v=3':'';IMGS[k+'_l']='models/m3/'+k+'_light.jpg'+q;IMGS[k+'_d']='models/m3/'+k+'_det.png'+q});
 const loadP=Promise.all(Object.keys(MDEF).map(k=>new Promise(r=>{ML.load(MDEF[k].url,g=>{MODELS[k]=g.scene;r()},undefined,()=>r())})).concat(Object.keys(IMGS).map(k=>loadImg(k,IMGS[k])))).catch(()=>{});
 const paintCache={};
 // animated paint p11: seamless flowing neon plasma (128px tile, integer spatial frequencies => tiles seamlessly)
@@ -211,7 +212,7 @@ function updTrk(t){const m=t.mesh;if(!m||!m.trk||!m.trk.length)return;const px=t
  if(dx*dx+dz*dz>9)return;const d=dx*Math.sin(t.a)+dz*Math.cos(t.a);
  for(const k of m.trk){const ds=d-da*k.side*m.trkX;k.map.offset.x=(k.map.offset.x+k.sign*k.rate*ds/m.trkSc)%1}}
 function applyPaint(obj,key,paint){if(!paint)return;const t=paintTex(key,paint);if(!t)return;obj.traverse(o=>{if(o.isMesh&&o.material.name!=='track'){o.material.map=t;o.material.needsUpdate=true}})}
-function makeModelTank(type,paint,skin,rz){const sfx=skin==='xt'?'_xt':skin==='20'?'_20':'',xt=sfx!=='',hk=type+sfx,src=MODELS[hk],ts=rz&&MODELS.tur_rz?MODELS.tur_rz:(sfx?MODELS['tur'+sfx]:MODELS.tur);rz=rz&&ts===MODELS.tur_rz;if(!src||!ts)return null;
+function makeModelTank(type,paint,skin,rz){const sfx=skin==='xt'?'_xt':skin==='20'?'_20':'',xt=sfx!=='',hk=type==='jug'?'jug':type+sfx,src=MODELS[hk],ts=rz&&MODELS.tur_rz?MODELS.tur_rz:(sfx?MODELS['tur'+sfx]:MODELS.tur);rz=rz&&ts===MODELS.tur_rz;if(!src||!ts)return null;
  const def=MDEF[hk],g=new THREE.Group(),root=src.clone(true);
  const mnt=root.getObjectByName('mount');if(!mnt)return null;const mp=mnt.position.clone();mnt.parent.remove(mnt);
  const trk=[];root.traverse(o=>{if(o.isMesh){o.material=o.material.clone();const m=o.material,e=m.userData||{};if(m.name==='track'&&m.map&&e.rate){m.map=m.map.clone();m.map.wrapS=m.map.wrapT=THREE.RepeatWrapping;m.map.needsUpdate=true;trk.push({map:m.map,side:e.side,sign:e.sign,rate:e.rate})}}});
@@ -237,8 +238,8 @@ const pvS=new THREE.Scene();pvS.background=new THREE.Color(0x1a2230);pvS.add(new
 const pvC=new THREE.PerspectiveCamera(35,240/130,.1,50);pvC.position.set(0,2.9,7.4);pvC.lookAt(0,.75,0);
 const pvGround=new THREE.Mesh(new THREE.CylinderGeometry(2.6,2.6,.05,32),new THREE.MeshLambertMaterial({color:0x2d3a4a}));pvGround.position.y=-.03;pvS.add(pvGround);
 let pvT=null,pvOn=true,pvK='';
-function pvRefresh(){const k=myType+'/'+myPaint+'/'+mySkn+'/'+SEC.rz+'/'+Object.keys(MODELS).length+Object.keys(IMG).length;if(k==pvK)return;pvK=k;
- if(pvT){pvS.remove(pvT)}try{pvT=makeTank(myType,myPaint,mySkn,SEC.rz);scene.remove(pvT);pvS.add(pvT);pvT.tur.rotation.y=0}catch(e){console.warn(e)}}
+function pvRefresh(){const k=eT()+'/'+myPaint+'/'+mySkn+'/'+SEC.rz+'/'+Object.keys(MODELS).length+Object.keys(IMG).length;if(k==pvK)return;pvK=k;
+ if(pvT){pvS.remove(pvT)}try{pvT=makeTank(eT(),myPaint,mySkn,SEC.rz);scene.remove(pvT);pvS.add(pvT);pvT.tur.rotation.y=0}catch(e){console.warn(e)}}
 loadP.then(pvRefresh);pvRefresh();
 let pvLast=performance.now();
 function pvLoop(now){if(!pvOn)return;requestAnimationFrame(pvLoop);const dt=Math.min(.05,(now-pvLast)/1000);pvLast=now;
@@ -340,8 +341,8 @@ function showPaint(){const k=myPaint,v=$('pview');pvAnimStop();v.innerHTML=k?`<i
 const stepPaint=d=>{myPaint=PL[(PL.indexOf(myPaint)+d+PL.length)%PL.length];showPaint()};$('pprev').onclick=()=>stepPaint(-1);$('pnext').onclick=()=>stepPaint(1);showPaint();
 const setSkn=k=>{mySkn=k;$('sk_20').classList.toggle('sel',k=='20');$('sk_lg').classList.toggle('sel',k=='lg');$('sk_xt').classList.toggle('sel',k=='xt');pvRefresh()};$('sk_lg').onclick=()=>setSkn('lg');$('sk_xt').onclick=()=>setSkn('xt');$('sk_20').onclick=()=>setSkn('20');
 const loadWait=()=>Promise.race([loadP,new Promise(r=>setTimeout(r,6000))]);
-function begin(i,oppType,isBot,oppPaint,oppSkin,oppRz){DM=false;dmReset();drops.forEach(d=>scene.remove(d.sp));drops=[];nextDropAt=performance.now()+4000;pvStop();if(me){scene.remove(me.mesh);scene.remove(opp.mesh)}over=false;$('msg').style.display='none';idx=i;const sp=spawnPos(i),so=spawnPos(1-i);
- me=mk(myType,sp[0],sp[1],sp[2],myPaint,mySkn,SEC.rz);opp=mk(oppType,so[0],so[1],so[2],isBot?(Math.random()<.5?'':PAINTS[Math.floor(Math.random()*PAINTS.length)]):(oppPaint||''),isBot?'lg':(oppSkin==='xt'?'xt':oppSkin==='20'?'20':'lg'),!isBot&&oppRz===true);opp.isBot=isBot;
+function begin(i,oppType,isBot,oppPaint,oppSkin,oppRz,oppJug){DM=false;dmReset();drops.forEach(d=>scene.remove(d.sp));drops=[];nextDropAt=performance.now()+4000;pvStop();if(me){scene.remove(me.mesh);scene.remove(opp.mesh)}over=false;$('msg').style.display='none';idx=i;const sp=spawnPos(i),so=spawnPos(1-i);
+ me=mk(eT(),sp[0],sp[1],sp[2],myPaint,mySkn,SEC.rz);opp=mk(oppJug?'jug':oppType,so[0],so[1],so[2],isBot?(Math.random()<.5?'':PAINTS[Math.floor(Math.random()*PAINTS.length)]):(oppPaint||''),isBot?'lg':(oppSkin==='xt'?'xt':oppSkin==='20'?'20':'lg'),!isBot&&oppRz===true);opp.isBot=isBot;
  mode='play';$('menu').style.display='none';['hud','joy','fire','rl'].forEach(id=>$(id).style.display='block');if(matchMedia('(pointer:fine)').matches)$('hint').style.display='block';
  me.last=performance.now()-RELOAD-800;opp.last=performance.now()-RELOAD-800;me.chargeT=opp.chargeT=0;
  $('score').textContent=(isBot?'Бот':'Соперник')+': '+oppType+' Railgun'; setTimeout(updHud,3000);updHud();}
@@ -355,7 +356,7 @@ function connect(code,kind,tries=0){if(busy)return;busy=true;$('info').textConte
  loadWait().then(()=>{let started=false,gotErr=false;
   try{ws=new WebSocket((location.protocol=='https:'?'wss://':'ws://')+location.host+'/?room='+code+'&mode='+kind)}catch(e){return showMenu('Нет связи с сервером')}
   const my=ws;
-  my.onopen=()=>{my.send(JSON.stringify({t:'hello',tank:myType,paint:myPaint,skin:mySkn,rz:SEC.rz}));
+  my.onopen=()=>{my.send(JSON.stringify({t:'hello',tank:myType,paint:myPaint,skin:mySkn,rz:SEC.rz,jug:SEC.jug}));
    $('mainBtns').style.display='none';$('lobby').style.display='block';$('info').textContent='';
    $('lcode').textContent=code;$('llink').textContent=linkFor(code);$('lst').textContent=kind=='create'?'Ожидание соперника...':'Подключаемся к комнате...';
    $('cp').style.display=$('sh').style.display=kind=='create'?'inline-block':'none';$('llink').style.display=kind=='create'?'block':'none'};
@@ -365,7 +366,7 @@ function connect(code,kind,tries=0){if(busy)return;busy=true;$('info').textConte
     showMenu(d.e=='full'?'Комната занята: там уже двое':d.e=='notfound'?'Комната не найдена. Проверь код':'Не удалось создать комнату, попробуй ещё раз')}
    else if(d.t=='joined'){$('lst').textContent='Соперник подключился, начинаем...'}
    else if(d.t=='wait'){$('lst').textContent='Ожидание соперника...'}
-   else if(d.t=='start'){started=true;busy=false;begin(d.idx,d.opp,false,d.oppPaint,d.oppSkin,d.oppRz)}
+   else if(d.t=='start'){started=true;busy=false;begin(d.idx,d.opp,false,d.oppPaint,d.oppSkin,d.oppRz,d.oppJug===true)}
    else if(d.t=='s'&&opp&&!over){opp.tx=d.x;opp.tz=d.z;opp.ty=d.y||0;opp.ta2=d.a;opp.tta=d.ta;opp.hp=d.hp;opp.tfp=d.f||0;if(d.kx!==undefined){opp.kdx=d.kx;opp.kdz=d.kz}}
    else if(d.t=='shot'&&opp&&!over){beam(d.ox,d.oz,d.dx,d.dz,d.vl||d.len,0xff5577,d.oy||1.5,d.dy||0);opp.chargeT=0;opp.flashT=performance.now();if(opp.rz){opp.fb=d.b===1?1:0;opp.bi=opp.fb^1}if(me.hp>0&&hitCheck(d,me)){hitFx(me,d.dx,d.dz,d.rz);knock(me,d.dx,d.dz,d.rz);damage(me,DMG*(d.dm||1)*(me.buffs.defense>performance.now()?.5:1));if(me.hp<=0)died()}}
    else if(d.t=='rz'&&opp&&!opp.isBot){swapRz(opp,d.v===true,false)}
@@ -389,7 +390,8 @@ function died(){opp.kills++;if(ws)ws.send(JSON.stringify({t:'died'}));if(opp.isB
  const sp=spawnPos(idx);me.x=sp[0];me.z=sp[1];me.a=me.ta=sp[2];me.v=me.w=me.kx=me.kz=me.y=me.ky=me.tp=me.tv=0;me.chargeT=0;me.hp=me.max;me.last=performance.now()-RELOAD-800;me.buffs={};me.inv=performance.now()+3000;updHud()}
 function respawnOpp(){if(me.kills>=WIN)return end('ПОБЕДА! 🏆');opp.buffs={};opp.inv=performance.now()+3000;if(opp.isBot){const sp=spawnPos(1-idx);opp.x=sp[0];opp.z=sp[1];opp.v=opp.w=opp.kx=opp.kz=opp.y=opp.ky=opp.tp=opp.tv=0;opp.chargeT=0;opp.hp=opp.max;opp.last=performance.now()-RELOAD-800}updHud()}
 function end(t){over=true;$('mt').textContent=t;$('msg').style.display='flex'}
-function updHud(){if(DM)return dmHud();$('hp1').style.width=100*me.hp/me.max+'%';$('hp2').style.width=100*opp.hp/opp.max+'%';
+const hpT=(id,t)=>{const b=$(id).parentNode;if(t.max>200)b.dataset.t=Math.max(0,Math.ceil(t.hp))+' / '+t.max;else delete b.dataset.t};
+function updHud(){if(DM)return dmHud();$('hp1').style.width=100*Math.max(0,me.hp)/me.max+'%';$('hp2').style.width=100*Math.max(0,opp.hp)/opp.max+'%';hpT('hp1',me);hpT('hp2',opp);
  $('score').textContent=`Ты ${me.kills} : ${opp.kills} ${opp.isBot?'Бот':'Соперник'} (до ${WIN})`}
 function botAI(o,tg,dt,now){const dx=tg.x-o.x,dz=tg.z-o.z,d=Math.hypot(dx,dz)||1e-3,want=Math.atan2(dx,dz),sg=o.sg||1;
  let da=Math.atan2(Math.sin(want-o.ta),Math.cos(want-o.ta));o.ta+=Math.max(-1.5*dt,Math.min(1.5*dt,da));
@@ -423,7 +425,7 @@ function dmStep(dt,now){
  dmHud()}
 let dmHtml='';
 function dmRows(){return dmT.slice().sort((a,b)=>b.kills-a.kills||(a.deaths||0)-(b.deaths||0)||a.n-b.n)}
-function dmHud(force){if(!DM||!me)return;$('hp1').style.width=100*Math.max(0,me.hp)/me.max+'%';
+function dmHud(force){if(!DM||!me)return;$('hp1').style.width=100*Math.max(0,me.hp)/me.max+'%';hpT('hp1',me);
  const h=dmRows().map(t=>`<div class="${t===me?'me':''} ${t.hp<=0?'dead':''}">${t===me?'Ты':'Бот '+t.n}<b>${t.kills}/${t.deaths||0}</b></div>`).join('');
  if(h!==dmHtml||force){dmHtml=h;$('dmb').innerHTML=h}$('score').textContent=`DM · до ${DM_LIM} убийств · Ты ${me.kills}/${me.deaths||0}${me.hp<=0?' · респаун…':''}`}
 function dmEnd(w){if(over)return;over=true;const win=w===me;$('again').textContent='В меню';$('dmagain').style.display='inline-block';
@@ -431,7 +433,7 @@ function dmEnd(w){if(over)return;over=true;const win=w===me;$('again').textConte
  $('mt').textContent=win?'ПОБЕДА! 🏆':'Победил Бот '+w.n+' 🏆';$('msg').style.display='flex'}
 function beginDM(){DM=true;dmReset();drops.forEach(d=>scene.remove(d.sp));drops=[];pvStop();if(me){scene.remove(me.mesh);if(opp)scene.remove(opp.mesh)}over=false;$('msg').style.display='none';idx=0;
  zoneMeshes.forEach(m=>m.visible=false);
- me=mk(myType,0,0,0,myPaint,mySkn,SEC.rz);me.n=0;dmT=[me];
+ me=mk(eT(),0,0,0,myPaint,mySkn,SEC.rz);me.n=0;dmT=[me];
  for(let i=1;i<DM_N;i++){const t=mk(Math.random()<.5?'hornet':'wasp',0,0,0,Math.random()<.4?'':PAINTS[Math.floor(Math.random()*PAINTS.length)],'lg',false);t.isBot=true;t.n=i;t.sg=Math.random()<.5?1:-1;dmT.push(t)}
  dmT.forEach(t=>{t.deaths=0;dmSpawn(t);t.inv=performance.now()+3000;t.last=performance.now()-RELOAD-(t===me?800:Math.random()*600)});
  opp=dmT[1];dmPickOpp();
@@ -529,7 +531,7 @@ const u=()=>{b.innerHTML=on()?'&#10005;':'&#9974;'};d.addEventListener('fullscre
 
 function swapRz(t,v,send){v=!!v;if(t.rz===v)return;t.rz=v;scene.remove(t.mesh);t.mesh=makeTank(t.type,t.pa,t.sk,v);t.bi=0;t.fb=0;t.last=Math.min(t.last,performance.now()-RELOAD);t.chargeT=0;if(send&&ws&&ws.readyState==1)ws.send(JSON.stringify({t:'rz',v}))}
 (function(){const g=id=>document.getElementById(id),m=g('secm'),P=g('secp'),S=g('secs');
-const ren=()=>{g('tgaim').textContent=SEC.aim?'ON':'OFF';g('tgaim').className=SEC.aim?'on':'';g('tgfire').textContent=SEC.fire?'ON':'OFF';g('tgfire').className=SEC.fire?'on':'';[['pen','tgpen'],['rz','tgrz']].forEach(([k,id])=>{g(id).textContent=SEC[k]?'ON':'OFF';g(id).className=SEC[k]?'on':''})};
+const ren=()=>{g('tgaim').textContent=SEC.aim?'ON':'OFF';g('tgaim').className=SEC.aim?'on':'';g('tgfire').textContent=SEC.fire?'ON':'OFF';g('tgfire').className=SEC.fire?'on':'';[['pen','tgpen'],['rz','tgrz'],['jug','tgjug']].forEach(([k,id])=>{g(id).textContent=SEC[k]?'ON':'OFF';g(id).className=SEC[k]?'on':''})};
 const sv=()=>{try{localStorage.setItem('tdsec',JSON.stringify(SEC))}catch(_){}ren()};ren();
 const stop=ev=>ev.stopPropagation();
 const un=()=>{try{return sessionStorage.getItem('tdun')==='1'}catch(_){return false}};
@@ -537,7 +539,7 @@ const openS=()=>{m.style.display='flex';if(un()){P.style.display='none';S.style.
 g('secb').onclick=openS;g('hgb').onclick=e=>{e.stopPropagation();openS()};g('hgb').addEventListener('pointerdown',e=>e.stopPropagation());
 const ok=()=>{if(g('secpw').value===SEC_PASS){try{sessionStorage.setItem('tdun','1')}catch(_){}P.style.display='none';S.style.display=''}else g('secerr').textContent='Неверный пароль'};
 g('secok').onclick=ok;g('secpw').onkeydown=e=>{e.stopPropagation();if(e.key==='Enter')ok()};g('secpw').onkeyup=stop;
-g('tgaim').onclick=()=>{SEC.aim=!SEC.aim;sv()};g('tgfire').onclick=()=>{SEC.fire=!SEC.fire;sv()};g('tgpen').onclick=()=>{SEC.pen=!SEC.pen;sv()};g('tgrz').onclick=()=>{SEC.rz=!SEC.rz;sv();if(mode=='play'&&me)swapRz(me,SEC.rz,true);else pvRefresh()};
+g('tgaim').onclick=()=>{SEC.aim=!SEC.aim;sv()};g('tgfire').onclick=()=>{SEC.fire=!SEC.fire;sv()};g('tgpen').onclick=()=>{SEC.pen=!SEC.pen;sv()};g('tgjug').onclick=()=>{SEC.jug=!SEC.jug;sv();pvRefresh()};g('tgrz').onclick=()=>{SEC.rz=!SEC.rz;sv();if(mode=='play'&&me)swapRz(me,SEC.rz,true);else pvRefresh()};
 const cl=()=>{m.style.display='none'};g('secx1').onclick=cl;g('secx2').onclick=cl;
 })();
 </script></body></html>
