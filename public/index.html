@@ -271,7 +271,7 @@ const EU=new THREE.Euler(),YAX=new THREE.Vector3(0,1,0),TAX=new THREE.Vector3(),
 function hitFx(t,dx,dz,rz){if(rz){t.shkT=performance.now();if(t===me){shakeT=t.shkT;shakeA=.5}}t.hitRz=!!rz;t.hitT=performance.now();t.hitDx=dx;t.hitDz=dz}
 function hitRec(t,now){if(!t.hitT)return 0;const f=(now-t.hitT)/650;if(!(f>=0&&f<1))return 0;return f<.15?f/.15:Math.pow(1-(f-.15)/.85,2)}
 function recoil(t,now){const f=(now-t.flashT)/420;if(!(f>=0&&f<1))return 0;return f<.12?f/.12:Math.pow(1-(f-.12)/.88,2)}
-function muzzlePos(t,bi){const m=t.mesh.muz||{px:0,pz:0,tip:2.5,y:1.5},c=Math.cos(t.a),sn=Math.sin(t.a),dx=Math.sin(t.ta),dz=Math.cos(t.ta),bx=m.bar?m.bar[bi===undefined?(t.bi||0):bi]:0;
+function muzzlePos(t,bi){const m=t.mesh.muz||{px:0,pz:0,tip:2.5,y:1.5},c=Math.cos(t.a),sn=Math.sin(t.a),dx=Math.sin(t.ta),dz=Math.cos(t.ta),bx=m.bar?(bi===2?(m.bar[0]+m.bar[1])/2:m.bar[bi===undefined?(t.bi||0):bi]):0;
  return[t.x+m.px*c+m.pz*sn+dx*m.tip+bx*dz,m.y+(t.y||0),t.z-m.px*sn+m.pz*c+dz*m.tip-bx*dx,dx,dz]}
 function shoot(sh,tg,send){const bi=sh.rz?(sh.bi||0):0,[ox,oy,oz,dx,dz]=muzzlePos(sh,bi),pen=sh===me&&SEC.pen;
  const len=pen?RANGE:wallDist(ox,oz,dx,dz);let vl=len,dy=0;
@@ -309,7 +309,7 @@ function altUpdate(now){const bt=$('altb'),ok=SEC.rz&&mode=='play';altUi.b.style
  if(ALT.on&&!altOk()){altCancel();return}
  if(ALT.oline&&now-ALT.oLz>500)ALT.oline.visible=false;
  if(!ALT.on)return;
- const[ox,oy,oz,dx,dz]=muzzlePos(me,0),wd=SEC.pen?RANGE:wallDist(ox,oz,dx,dz);let tg=null,bp=1e9;
+ const[ox,oy,oz,dx,dz]=muzzlePos(me,2),wd=SEC.pen?RANGE:wallDist(ox,oz,dx,dz);let tg=null,bp=1e9;
  for(const t of altTargets(now)){const p=rayCircle(ox,oz,dx,dz,t.x,t.z,R*1.8);if(p!==null&&p>.5&&p<=wd&&p<bp){bp=p;tg=t}}
  if(tg!==ALT.tgt){ALT.tgt=tg;ALT.t0=tg?now:0}
  const len=tg?bp:wd,ty=tg?1:oy,ex=ox+dx*len,ez=oz+dz*len;altSeg(altLine('line',0xff1010),ox,oy,oz,ex,ty,ez,.035+.012*Math.sin(now/40));
@@ -318,7 +318,7 @@ function altUpdate(now){const bt=$('altb'),ok=SEC.rz&&mode=='play';altUi.b.style
  altUi.d.style.display='block';$('lockt').textContent=tg?'ЗАХВАТ '+(pr*LOCK_T/1000).toFixed(1)+' / '+LOCK_T/1000+' с':'ЦЕЛЬ НЕ ЗАХВАЧЕНА';$('lockb').style.width=pr*100+'%';
  if(ws&&ws.readyState==1&&now-ALT.lzSent>100){ALT.lzSent=now;ws.send(JSON.stringify({t:'lz',on:1,ox,oy,oz,tx:ex,ty,tz:ez,p:+pr.toFixed(2)}))}
  if(tg&&pr>=1)altFire(tg,now)}
-function altFire(tg,now){const[ox,oy,oz,dx,dz]=muzzlePos(me,0),seed=Math.random();altCancel();ALT.cd=now+ALT_CD;
+function altFire(tg,now){const[ox,oy,oz,dx,dz]=muzzlePos(me,2),seed=Math.random();altCancel();ALT.cd=now+ALT_CD;
  if(ws&&ws.readyState==1)ws.send(JSON.stringify({t:'msl',ox,oy,oz,dx,dz,seed}));
  mslSalvo(ox,oy,oz,dx,dz,seed,tg,DM||opp.isBot?'self':'vis',me,now)}
 function mslSalvo(ox,oy,oz,dx,dz,seed,tg,mode2,sh,now){altInitGeo();let s=seed*9301+7;const rnd=()=>(s=(s*9301+49297)%233280)/233280;
