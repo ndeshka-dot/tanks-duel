@@ -226,7 +226,7 @@ fb.addEventListener('pointerdown',e=>{e.preventDefault();e.stopPropagation();fir
 fb.addEventListener('contextmenu',e=>e.preventDefault());fb.addEventListener('touchstart',e=>e.preventDefault(),{passive:false});
 const keys={};addEventListener('keydown',e=>{keys[e.code]=1;if(e.code=='Space')fireReq=true});addEventListener('keyup',e=>keys[e.code]=0);
 // flow
-const PL=['',...PAINTS];function showPaint(){const k=myPaint,v=$('pview');v.innerHTML=k?`<img src="models/paints/i${k.slice(1)}.png" style="width:100%;height:100%;object-fit:contain">`:'<img src="models/paints/i_base.png" style="width:100%;height:100%;object-fit:contain">';$('pcnt').textContent=(PL.indexOf(k)+1)+' / '+PL.length;pvRefresh()}
+const PL=['',...PAINTS];['i_base',...PAINTS.map(p=>'i'+p.slice(1))].forEach(n=>{new Image().src='models/paints/'+n+'.webp?v=2'});function showPaint(){const k=myPaint,v=$('pview');v.innerHTML=k?`<img src="models/paints/i${k.slice(1)}.webp?v=2" style="width:100%;height:100%;object-fit:contain">`:'<img src="models/paints/i_base.webp?v=2" style="width:100%;height:100%;object-fit:contain">';$('pcnt').textContent=(PL.indexOf(k)+1)+' / '+PL.length;pvRefresh()}
 const stepPaint=d=>{myPaint=PL[(PL.indexOf(myPaint)+d+PL.length)%PL.length];showPaint()};$('pprev').onclick=()=>stepPaint(-1);$('pnext').onclick=()=>stepPaint(1);showPaint();
 const loadWait=()=>Promise.race([loadP,new Promise(r=>setTimeout(r,6000))]);
 function begin(i,oppType,isBot,oppPaint){drops.forEach(d=>scene.remove(d.sp));drops=[];nextDropAt=performance.now()+4000;pvStop();if(me){scene.remove(me.mesh);scene.remove(opp.mesh)}over=false;$('msg').style.display='none';idx=i;const sp=spawnPos(i),so=spawnPos(1-i);

@@ -1,5 +1,5 @@
 const express=require('express'),http=require('http'),{WebSocketServer}=require('ws');
-const app=express();app.use(express.static(__dirname+'/public'));
+const app=express();app.use(express.static(__dirname+'/public',{maxAge:'1h',setHeaders:(res,f)=>{if(/\/models\/paints\/i.*\.webp$/.test(f))res.setHeader('Cache-Control','public, max-age=604800, immutable')}}));
 const srv=http.createServer(app),wss=new WebSocketServer({server:srv});
 const rooms={};
 const ZT=['speed','repair','defense','damage'];
