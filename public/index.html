@@ -1,5 +1,5 @@
 <!doctype html><html><head><meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <title>Tanks 1v1</title>
 <style>
 html,body{margin:0;height:100%;overflow:hidden;background:#111;font-family:sans-serif;color:#fff;touch-action:none;user-select:none;-webkit-user-select:none}
@@ -18,20 +18,59 @@ button{font-size:20px;padding:12px 28px;border-radius:10px;border:0;background:#
 #knob{position:absolute;left:45px;top:45px;width:40px;height:40px;border-radius:50%;background:rgba(255,255,255,.5)}
 #fire{position:fixed;right:18px;bottom:24px;width:140px;height:140px;border-radius:50%;background:rgba(255,60,60,.6);display:none;text-align:center;line-height:140px;font-weight:bold;font-size:22px;touch-action:none;-webkit-tap-highlight-color:transparent}#fire.on{background:rgba(255,120,120,.85)}
 #rl{position:fixed;right:18px;bottom:172px;width:140px;height:8px;background:#333;display:none}#rl i{display:block;height:100%;background:#0cf}#rl.ch i{background:#ffb300}
+
+#menu{padding:max(10px,env(safe-area-inset-top)) max(10px,env(safe-area-inset-right)) 10px max(10px,env(safe-area-inset-left));box-sizing:border-box}
+#menu h2{margin:4px 0}
+#pv{width:240px;height:130px;border-radius:10px;background:#1a2230;margin:4px 0;max-width:100%}
+#mleft,#mright{display:flex;flex-direction:column;align-items:center}
+#mleft{min-height:0}
+.lbl{margin-top:8px;font-size:15px}
+.skrow{margin:4px 0;display:flex;gap:8px;justify-content:center}
+.skrow .card,.card.sk{margin:0;width:auto;min-width:54px;box-sizing:border-box;padding:10px 16px;font-size:18px}
+#tkrow .card{width:auto;min-width:54px;padding:10px 18px;font-size:20px;margin:0}
+#paintrow{display:flex;align-items:center;justify-content:center;gap:10px;margin:4px 0}
+#paintrow button{margin:0;padding:8px 16px;font-size:22px}
+#pview{width:166px;height:106px;border:2px solid #ffb300;border-radius:10px;background:#222;display:flex;align-items:center;justify-content:center;overflow:hidden;font-size:14px}
+#coderow{margin-top:12px;display:flex;gap:8px;justify-content:center;align-items:center}
+#coderow button{margin:0;padding:10px 16px;font-size:17px}
+#fsb{position:fixed;top:calc(30px + env(safe-area-inset-top));right:calc(6px + env(safe-area-inset-right));z-index:30;width:36px;height:36px;padding:0;margin:0;font-size:22px;line-height:36px;border-radius:8px;background:rgba(255,179,0,.85);color:#000}
+@media (orientation:landscape) and (max-height:560px){
+ #menu{flex-direction:row;gap:3vw;padding-top:6px;padding-bottom:6px;overflow-y:auto;height:100dvh;bottom:auto}
+ #mleft{flex:0 0 40vw;max-width:40vw;justify-content:center}
+ #mright{flex:0 1 50vw;max-width:52vw;justify-content:center}
+ #menu h2{font-size:clamp(16px,5vh,24px);margin:0 0 2px}
+ #pv{width:min(38vw,calc((100dvh - 60px)*1.846));height:auto;aspect-ratio:480/260;margin:2px 0}
+ .lbl{margin-top:2px;font-size:12px}
+ .skrow{margin:2px 0;gap:6px}
+ .skrow .card,.card.sk,#tkrow .card{padding:5px 12px;font-size:15px;min-width:40px;border-width:2px}
+ #paintrow{gap:6px;margin:2px 0}
+ #paintrow button{padding:4px 12px;font-size:16px}
+ #pview{width:110px;height:70px}
+ #pcnt{margin-bottom:2px!important;font-size:11px!important}
+ #mainBtns{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;align-items:center}
+ #mainBtns button,#mainBtns input{margin:0!important;font-size:14px!important;padding:7px 10px!important}
+ #mainBtns input{width:64px}
+ #coderow{margin:0;gap:4px}
+ #lobby{font-size:13px} #lcode{font-size:26px!important}
+ #info{margin-top:4px!important;font-size:12px}
+ #fsb{top:calc(4px + env(safe-area-inset-top));width:32px;height:32px;line-height:32px}
+}
+@media (orientation:portrait){#menu{justify-content:flex-start}#menu>*{flex-shrink:0}}
 </style></head><body>
-<div id="menu"><h2>TANKS 1v1</h2><canvas id="pv" width="480" height="260" style="width:240px;height:130px;border-radius:10px;background:#1a2230;margin:4px 0"></canvas>
-<div>Выбери танк (пушка Railgun):</div>
-<div><div class="card sel" id="c_hornet" title="Hornet Railgun — HP 150, средний"><b>ХР</b></div><div class="card" id="c_wasp" title="Wasp Railgun — HP 100, быстрый"><b>ВР</b></div></div>
-<div style="margin-top:8px">Скин:</div><div style="margin:4px 0"><button id="sk_lg" class="card sel" style="width:auto;color:inherit;font-size:16px;padding:8px 18px;margin:0 4px">LG</button><button id="sk_xt" class="card" style="width:auto;color:inherit;font-size:16px;padding:8px 18px;margin:0 4px">XT</button><button id="sk_20" class="card" style="width:auto;color:inherit;font-size:16px;padding:8px 18px;margin:0 4px">2.0</button></div>
-<div style="margin-top:8px">Краска:</div><div id="paintrow" style="display:flex;align-items:center;justify-content:center;gap:10px;margin:4px 0"><button id="pprev" style="margin:0;padding:8px 16px;font-size:22px">&#9664;</button><div id="pview" style="width:166px;height:106px;border:2px solid #ffb300;border-radius:10px;background:#222;display:flex;align-items:center;justify-content:center;overflow:hidden;font-size:14px"></div><button id="pnext" style="margin:0;padding:8px 16px;font-size:22px">&#9654;</button></div><div id="pcnt" style="font-size:12px;color:#aaa;margin-bottom:6px"></div>
+<button id="fsb" title="Fullscreen" style="display:none">&#9974;</button>
+<div id="menu"><div id="mleft"><h2>TANKS 1v1</h2><canvas id="pv" width="480" height="260"></canvas></div><div id="mright">
+<div class="lbl">Танк (Railgun):</div>
+<div class="skrow" id="tkrow"><div class="card sel" id="c_hornet" title="Hornet Railgun — HP 150, средний"><b>ХР</b></div><div class="card" id="c_wasp" title="Wasp Railgun — HP 100, быстрый"><b>ВР</b></div></div>
+<div class="lbl">Скин:</div><div class="skrow"><button id="sk_lg" class="card sel sk">LG</button><button id="sk_xt" class="card sk">XT</button><button id="sk_20" class="card sk">2.0</button></div>
+<div class="lbl">Краска:</div><div id="paintrow"><button id="pprev">&#9664;</button><div id="pview"></div><button id="pnext">&#9654;</button></div><div id="pcnt" style="font-size:12px;color:#aaa;margin-bottom:6px"></div>
 <div id="mainBtns"><button id="mk">Создать комнату</button>
-<div style="margin-top:12px"><input id="code" maxlength="6" placeholder="КОД" autocapitalize="characters" autocomplete="off"><button id="jn" style="margin-top:0;margin-left:8px;padding:10px 16px;font-size:17px">Войти по коду</button></div>
+<div id="coderow"><input id="code" maxlength="6" placeholder="КОД" autocapitalize="characters" autocomplete="off"><button id="jn">Войти по коду</button></div>
 <button id="go" style="background:#555;color:#fff;font-size:16px;padding:9px 20px">Играть с ботом</button></div>
 <div id="lobby" style="display:none"><div style="color:#aaa">Код комнаты</div><div id="lcode" style="font-size:40px;letter-spacing:6px;font-weight:bold;color:#ffb300"></div>
 <div id="llink" style="font-size:12px;color:#8cf;word-break:break-all;max-width:300px;margin:4px auto"></div>
 <div><button id="cp" style="font-size:16px;padding:9px 16px">Копировать ссылку</button> <button id="sh" style="font-size:16px;padding:9px 16px">Поделиться</button></div>
 <div id="lst" style="margin-top:10px">Ожидание соперника...</div><button id="lc" style="background:#555;color:#fff;font-size:15px;padding:8px 18px">Отмена</button></div>
-<div id="info" style="margin-top:10px;color:#aaa"></div></div>
+<div id="info" style="margin-top:10px;color:#aaa"></div></div></div>
 <div id="msg" style="display:none;background:rgba(0,0,0,.6)"><h1 id="mt"></h1><button id="again">Ещё раз</button></div>
 <div id="buffs" style="position:fixed;top:44px;left:0;right:0;text-align:center;font-size:14px;pointer-events:none;z-index:5"></div>
 <div id="hud"><div class="bar" style="left:8px"><i id="hp1" style="width:100%"></i></div><div class="bar" style="right:8px"><i id="hp2" style="width:100%;float:right"></i></div><div id="score"></div></div>
@@ -383,4 +422,13 @@ function loop(now){requestAnimationFrame(loop);const dt=Math.min(.05,(now-prev)/
  else{cam.position.set(0,25,-35);cam.lookAt(0,0,0)}
  animTick(now,[me&&me.mesh,opp&&opp.mesh]);renderer.render(scene,cam)}
 requestAnimationFrame(loop);
+
+(function(){const b=document.getElementById('fsb'),d=document,e=d.documentElement;
+const req=e.requestFullscreen||e.webkitRequestFullscreen,ex=d.exitFullscreen||d.webkitExitFullscreen;
+if(!req)return;
+b.style.display='block';
+const on=()=>d.fullscreenElement||d.webkitFullscreenElement;
+b.onclick=async()=>{try{if(on()){await ex.call(d);}else{await req.call(e);try{await screen.orientation.lock('landscape')}catch(_){}}}catch(_){}};
+b.addEventListener('touchstart',ev=>ev.stopPropagation(),{passive:true});
+const u=()=>{b.innerHTML=on()?'&#10005;':'&#9974;'};d.addEventListener('fullscreenchange',u);d.addEventListener('webkitfullscreenchange',u);})();
 </script></body></html>
