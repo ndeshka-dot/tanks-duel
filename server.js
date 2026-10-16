@@ -13,7 +13,7 @@ function scheduleDrop(r,first){r.dt=setTimeout(()=>{if(!r.started)return;
 const send=(w,o)=>{if(w&&w.readyState===1)w.send(JSON.stringify(o))};
 function tryStart(r){
   if(r.length===2&&!r.started&&r.every(w=>w.ready)){r.started=true;stopDrops(r);scheduleDrop(r,true);
-    r.forEach((w,i)=>{w.ready=false;send(w,{t:'start',idx:i,opp:r[1-i].tank,oppPaint:r[1-i].paint||''})});}
+    r.forEach((w,i)=>{w.ready=false;send(w,{t:'start',idx:i,opp:r[1-i].tank,oppPaint:r[1-i].paint||'',oppSkin:r[1-i].skin==='xt'?'xt':'lg'})});}
 }
 wss.on('connection',(ws,req)=>{
   const q=new URL(req.url,'http://x').searchParams;
@@ -27,7 +27,7 @@ wss.on('connection',(ws,req)=>{
   r.push(ws);ws.tank='hornet';ws.ready=false;
   if(r.length===2)r.forEach(w=>w!==ws&&send(w,{t:'joined'}));
   ws.on('message',m=>{let d;try{d=JSON.parse(m)}catch{return}
-    if(d.t==='hello'){ws.tank=d.tank==='wasp'?'wasp':'hornet';ws.paint=PAINTS.includes(d.paint)?d.paint:'';ws.ready=true;tryStart(r);return;}
+    if(d.t==='hello'){ws.tank=d.tank==='wasp'?'wasp':'hornet';ws.paint=PAINTS.includes(d.paint)?d.paint:'';ws.skin=d.skin==='xt'?'xt':'lg';ws.ready=true;tryStart(r);return;}
     if(d.t==='pickup'){if(!r.started||!r.drops)return;const dr=r.drops[d.id];if(!dr)return;delete r.drops[d.id];const by=r.indexOf(ws);r.forEach(w=>send(w,{t:'taken',id:d.id,by,type:ZT[dr.zone]}));return}
     if(d.t==='rematch'){ws.ready=true;r.started=false;stopDrops(r);if(r.length<2)send(ws,{t:'wait'});tryStart(r);return;}
     if(!r.started)return;
