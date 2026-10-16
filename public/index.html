@@ -346,7 +346,7 @@ function loop(now){requestAnimationFrame(loop);const dt=Math.min(.05,(now-prev)/
   sendT+=dt;if(ws&&ws.readyState==1&&sendT>.05){sendT=0;ws.send(JSON.stringify({t:'s',x:me.x,z:me.z,a:me.a,ta:me.ta,hp:me.hp}));}
   if(!opp.isBot)updHud();
  }
- if(me){for(const t of[me,opp]){const nw=performance.now(),rc=recoil(t,nw);t.mesh.position.set(t.x-Math.sin(t.ta)*.35*rc,.4*hop(t,nw),t.z-Math.cos(t.ta)*.35*rc);t.mesh.rotation.y=t.a;t.mesh.tur.rotation.y=t.ta-t.a;t.mesh.visible=t.hp>0}
+ if(me){for(const t of[me,opp]){const nw=performance.now(),rc=recoil(t,nw);t.mesh.position.set(t.x-Math.sin(t.ta)*.35*rc,0,t.z-Math.cos(t.ta)*.35*rc);t.mesh.rotation.order='YXZ';t.mesh.rotation.y=t.a;t.mesh.rotation.x=-.15*rc;t.mesh.tur.rotation.y=t.ta-t.a;t.mesh.visible=t.hp>0}
   for(const t of[me,opp]){if(t.inv>now)t.mesh.visible=Math.floor(now/120)%2==0;else if(t.inv){t.inv=0;t.mesh.visible=true}updGlow(t,now);updAura(t,now);updIcons(t,now)}updDrops(now,dt);updBuffs(now);
   const cp=Math.cos(camPitch),sp=Math.sin(camPitch),D=9,sx=Math.sin(me.ta),sz=Math.cos(me.ta);
   cam.position.set(Math.max(-A-4,Math.min(A+4,me.x-sx*cp*D)),1.2+sp*D,Math.max(-A-4,Math.min(A+4,me.z-sz*cp*D)));{const sk=performance.now()-shakeT;if(sk<300){const a=.14*(1-sk/300)**2;cam.position.x+=(Math.random()-.5)*a;cam.position.y+=(Math.random()-.5)*a;cam.position.z+=(Math.random()-.5)*a}}cam.lookAt(me.x+sx*5,1.2,me.z+sz*5);}
