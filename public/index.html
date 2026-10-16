@@ -175,7 +175,7 @@ function makeProcTank(type,skin){if(type=='wasp')return makeWasp(skin||'redgold'
 
 // ---- real models (GLTF) with procedural fallback ----
 const MODELS={};const ML=new GLTFLoader();
-const MDEF={hornet:{url:'models/m3/hornet.gltf',len:3.7},wasp:{url:'models/m3/wasp.gltf',len:3.5},tur:{url:'models/m3/turret.gltf'},hornet_xt:{url:'models/m3/hornet_xt.gltf?v=5',len:3.7},wasp_xt:{url:'models/m3/wasp_xt.gltf?v=5',len:3.5},tur_xt:{url:'models/m3/flash.gltf'},hornet_20:{url:'models/m3/hornet_20.gltf?v=5',len:3.7},wasp_20:{url:'models/m3/wasp_20.gltf?v=5',len:3.5},tur_20:{url:'models/m3/rail20.gltf'},tur_rz:{url:'models/m3/term20.gltf?v=1'}};
+const MDEF={hornet:{url:'models/m3/hornet.gltf',len:3.7},wasp:{url:'models/m3/wasp.gltf',len:3.5},tur:{url:'models/m3/turret.gltf'},hornet_xt:{url:'models/m3/hornet_xt.gltf?v=5',len:3.7},wasp_xt:{url:'models/m3/wasp_xt.gltf?v=5',len:3.5},tur_xt:{url:'models/m3/flash.gltf'},hornet_20:{url:'models/m3/hornet_20.gltf?v=5',len:3.7},wasp_20:{url:'models/m3/wasp_20.gltf?v=5',len:3.5},tur_20:{url:'models/m3/rail20.gltf'},tur_rz:{url:'models/m3/term20.gltf?v=2'}};
 const IMG={};
 const loadImg=(k,u)=>new Promise(r=>{const i=new Image();i.onload=()=>{IMG[k]=i;r()};i.onerror=r;i.src=u});
 const IMGS={};PAINTS.forEach(p=>{if(p!=='p11')IMGS[p]='models/paints/'+p+'.jpg'});['wasp','hornet','turret','wasp_xt','hornet_xt','flash','wasp_20','hornet_20','rail20','term20'].forEach(k=>{IMGS[k+'_l']='models/m3/'+k+'_light.jpg';IMGS[k+'_d']='models/m3/'+k+'_det.png'});
