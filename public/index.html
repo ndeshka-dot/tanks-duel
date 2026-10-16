@@ -261,27 +261,27 @@ function beam(ox,oz,dx,dz,len,col,oy=1.5,dy=0){const L=Math.hypot(len,dy),g=new 
  const m=new THREE.Mesh(g,new THREE.MeshBasicMaterial({color:col,transparent:true,opacity:.9}));m.position.set(ox,oy,oz);m.lookAt(ox+dx*len,oy+dy,oz+dz*len);scene.add(m);beams.push({m,t:0});}
 function wallDist(ox,oz,dx,dz){let best=RANGE;for(const b of boxes){const t=rayBox(ox,oz,dx,dz,b);if(t!==null&&t<best)best=t}return best}
 // shooter fires: returns hit?
-let shakeT=0;
+let shakeT=0,shakeA=.14;
 function hop(t,now){const f=(now-t.flashT)/420;return(f>=0&&f<1)?Math.sin(Math.PI*Math.pow(f,.7)):0}
 const YAX=new THREE.Vector3(0,1,0),TAX=new THREE.Vector3(),TQ=new THREE.Quaternion();
 /* KNOCKBACK: real push of the hit tank. KNOCK = master multiplier (0 = off). Impulse speed KN_V*KNOCK u/s along shot dir, exp. decay KN_DECAY /s => slide distance ~ KN_V*KNOCK/KN_DECAY (~21u). RAZEB shots push KN_RZ times as much but stack up to KN_CAP u/s. */
 const KNOCK=1,KN_V=55,KN_DECAY=2.6,KN_RZ=.3,KN_CAP=95,KREC=3;
 /* VERTICAL (launch into the air): KN_UP = upward speed u/s per hit (peak height ~ KN_UP^2/(2*GRAV)); RAZEB hit gives KN_UP*KN_UP_RZ, stacking up to KN_UP_CAP. GRAV = gravity u/s^2. KN_AIR = horizontal decay while airborne (ground uses KN_DECAY). KN_BOUNCE = restitution on landing (0 = none), KN_SPIN = hull tumble rad/s per hit, KN_TMAX = max tumble angle, KN_FLY = allow flying over boxes lower than the tank's altitude. KN_CTRL = steering/drive authority while airborne (0..1). */
-const KN_UP=12,KN_UP_RZ=.35,KN_UP_CAP=17,GRAV=30,KN_AIR=.5,KN_BOUNCE=.28,KN_SPIN=1.6,KN_TMAX=.9,KN_FLY=true,KN_CTRL=0;
+const KN_UP=12,KN_UP_RZ=.35,KN_UP_CAP=17,GRAV=30,KN_AIR=.5,KN_BOUNCE=.28,KN_SPIN=1.6,KN_TMAX=.15,KN_FLY=true,KN_CTRL=0;
 const airborne=t=>(t.y||0)>.02||(t.ky||0)>0;
-function knock(t,dx,dz,rz){if(!KNOCK||!t||t.hp<=0||t.inv>performance.now())return;const m=KNOCK*KN_V*(rz?KN_RZ:1);let vx=(t.kx||0)+dx*m,vz=(t.kz||0)+dz*m;const sp=Math.hypot(vx,vz);if(sp>KN_CAP){vx*=KN_CAP/sp;vz*=KN_CAP/sp}t.kx=vx;t.kz=vz;t.v*=.3;
- t.ky=Math.min(KN_UP_CAP,Math.max(t.ky||0,0)+KN_UP*KNOCK*(rz?KN_UP_RZ:1));if(!t.y)t.y=.001;t.kdx=dx;t.kdz=dz;t.tv=(t.tv||0)+KN_SPIN*(rz?.5:1)}
-function landFx(t,vi){t.landT=performance.now();if(t===me&&vi>3){shakeT=t.landT}}
+function knock(t,dx,dz,rz){if(!KNOCK||!rz||!t||t.hp<=0||t.inv>performance.now())return;const m=KNOCK*KN_V*(rz?KN_RZ:1);let vx=(t.kx||0)+dx*m,vz=(t.kz||0)+dz*m;const sp=Math.hypot(vx,vz);if(sp>KN_CAP){vx*=KN_CAP/sp;vz*=KN_CAP/sp}t.kx=vx;t.kz=vz;t.v*=.3;
+ t.ky=Math.min(KN_UP_CAP,Math.max(t.ky||0,0)+KN_UP*KNOCK*(rz?KN_UP_RZ:1));if(!t.y)t.y=.001;t.kdx=dx;t.kdz=dz;t.tv=Math.min(3,(t.tv||0)+KN_SPIN*.5)}
+function landFx(t,vi){t.landT=performance.now();if(t===me&&vi>3){shakeT=t.landT;shakeA=.4}}
 function stepAir(t,dt){
  if(airborne(t)){t.ky=(t.ky||0)-GRAV*dt;t.y=(t.y||0)+t.ky*dt;
   if(t.y<=0){t.y=0;const vi=-t.ky;if(vi>4&&KN_BOUNCE>0){t.ky=vi*KN_BOUNCE;t.y=.001;const f=.55;t.kx*=f;t.kz*=f}else{t.ky=0}landFx(t,vi)}
-  t.tp=Math.max(-KN_TMAX,Math.min(KN_TMAX,(t.tp||0)+(t.tv||0)*dt))}
+  t.tv=Math.max(-3,Math.min(3,t.tv||0));t.tp=Math.max(-KN_TMAX,Math.min(KN_TMAX,(t.tp||0)+(t.tv||0)*dt));if(Math.abs(t.tp)>=KN_TMAX)t.tv=0}
  else{t.y=0;t.ky=0;const tp=t.tp||0,tv=t.tv||0;if(tp||tv){const nv=tv+(-90*tp-9*tv)*dt;t.tv=nv;t.tp=tp+nv*dt;if(Math.abs(t.tp)<.005&&Math.abs(nv)<.05){t.tp=0;t.tv=0}}}}
 function stepKnock(t,dt){stepAir(t,dt);if(!t.kx&&!t.kz)return;const sp=Math.hypot(t.kx,t.kz);if(sp<.4){t.kx=t.kz=0;return}
  const n=Math.ceil(sp*dt/.4),h=dt/n;for(let i=0;i<n;i++){const ox=t.x,oz=t.z;t.x+=t.kx*h;t.z+=t.kz*h;resolve(t);
   const mx=t.x-ox,mz=t.z-oz,ex=t.kx*h,ez=t.kz*h;if(Math.hypot(mx,mz)<Math.hypot(ex,ez)*.5){t.kx*=.4;t.kz*=.4}}
  const f=Math.exp(-(airborne(t)?KN_AIR:KN_DECAY)*dt);t.kx*=f;t.kz*=f}
-function hitFx(t,dx,dz){t.hitT=performance.now();t.hitDx=dx;t.hitDz=dz}
+function hitFx(t,dx,dz,rz){t.hitRz=!!rz;t.hitT=performance.now();t.hitDx=dx;t.hitDz=dz}
 function hitRec(t,now){if(!t.hitT)return 0;const f=(now-t.hitT)/650;if(!(f>=0&&f<1))return 0;return f<.15?f/.15:Math.pow(1-(f-.15)/.85,2)}
 function recoil(t,now){const f=(now-t.flashT)/420;if(!(f>=0&&f<1))return 0;return f<.12?f/.12:Math.pow(1-(f-.12)/.88,2)}
 function muzzlePos(t,bi){const m=t.mesh.muz||{px:0,pz:0,tip:2.5,y:1.5},c=Math.cos(t.a),sn=Math.sin(t.a),dx=Math.sin(t.ta),dz=Math.cos(t.ta),bx=m.bar?m.bar[bi===undefined?(t.bi||0):bi]:0;
@@ -289,7 +289,7 @@ function muzzlePos(t,bi){const m=t.mesh.muz||{px:0,pz:0,tip:2.5,y:1.5},c=Math.co
 function shoot(sh,tg,send){const bi=sh.rz?(sh.bi||0):0,[ox,oy,oz,dx,dz]=muzzlePos(sh,bi),pen=sh===me&&SEC.pen;
  const len=pen?RANGE:wallDist(ox,oz,dx,dz);let vl=len,dy=0;
  if(tg&&tg.hp>0){const p=rayCircle(ox,oz,dx,dz,tg.x,tg.z,R*1.6);if(p!==null&&p<=len&&p>.5){vl=p;dy=.9-oy}}
- beam(ox,oz,dx,dz,vl,sh===me?0x00e5ff:0xff5577,oy,dy);sh.flashT=performance.now();sh.chargeT=0;sh.fb=bi;if(sh.rz)sh.bi=bi^1;sh.v-=(sh.rz?.8:2.5)*(KNOCK?KREC:1)*Math.cos(sh.ta-sh.a);if(sh===me)shakeT=sh.flashT;
+ beam(ox,oz,dx,dz,vl,sh===me?0x00e5ff:0xff5577,oy,dy);sh.flashT=performance.now();sh.chargeT=0;sh.fb=bi;if(sh.rz)sh.bi=bi^1;sh.v-=(sh.rz?.8*(KNOCK?KREC:1):2.5)*Math.cos(sh.ta-sh.a);if(sh===me){shakeT=sh.flashT;shakeA=sh.rz&&KNOCK?.4:.14}
  if(send&&ws&&ws.readyState==1)ws.send(JSON.stringify({t:'shot',ox,oy,oz,dx,dz,len,vl,dy,rz:sh.rz?1:0,dm:((sh.buffs.damage>performance.now())?2:1)*(sh.rz?RZ_DMG:1),b:bi}));
  return{ox,oz,dx,dz,len}}
 function drive(t,ix,iy,dt,T){const cl=(v,m)=>Math.max(-m,Math.min(m,v));if(airborne(t)){if(KN_CTRL<=0){t.v*=Math.exp(-.8*dt);t.w*=Math.exp(-.8*dt);t.a+=t.w*dt;return}ix*=KN_CTRL;iy*=KN_CTRL}
@@ -358,7 +358,7 @@ function connect(code,kind,tries=0){if(busy)return;busy=true;$('info').textConte
    else if(d.t=='wait'){$('lst').textContent='Ожидание соперника...'}
    else if(d.t=='start'){started=true;busy=false;begin(d.idx,d.opp,false,d.oppPaint,d.oppSkin,d.oppRz)}
    else if(d.t=='s'&&opp&&!over){opp.tx=d.x;opp.tz=d.z;opp.ty=d.y||0;opp.ta2=d.a;opp.tta=d.ta;opp.hp=d.hp}
-   else if(d.t=='shot'&&opp&&!over){beam(d.ox,d.oz,d.dx,d.dz,d.vl||d.len,0xff5577,d.oy||1.5,d.dy||0);opp.chargeT=0;opp.flashT=performance.now();if(opp.rz){opp.fb=d.b===1?1:0;opp.bi=opp.fb^1}if(me.hp>0&&hitCheck(d,me)){hitFx(me,d.dx,d.dz);knock(me,d.dx,d.dz,d.rz);damage(me,DMG*(d.dm||1)*(me.buffs.defense>performance.now()?.5:1));if(me.hp<=0)died()}}
+   else if(d.t=='shot'&&opp&&!over){beam(d.ox,d.oz,d.dx,d.dz,d.vl||d.len,0xff5577,d.oy||1.5,d.dy||0);opp.chargeT=0;opp.flashT=performance.now();if(opp.rz){opp.fb=d.b===1?1:0;opp.bi=opp.fb^1}if(me.hp>0&&hitCheck(d,me)){hitFx(me,d.dx,d.dz,d.rz);knock(me,d.dx,d.dz,d.rz);damage(me,DMG*(d.dm||1)*(me.buffs.defense>performance.now()?.5:1));if(me.hp<=0)died()}}
    else if(d.t=='rz'&&opp&&!opp.isBot){swapRz(opp,d.v===true,false)}
    else if(d.t=='charge'&&opp&&!over){opp.chargeT=performance.now()}
    else if(d.t=='drop'){addDrop(d.id,d.zone)}
@@ -389,7 +389,7 @@ function botAI(dt,now){const o=opp,dx=me.x-o.x,dz=me.z-o.z,d=Math.hypot(dx,dz),w
  {const bd=nearestDrop(o);if(bd&&bd.d<22&&bd.d>.5){mvx=(bd.x-o.x)/bd.d;mvz=(bd.z-o.z)/bd.d}}
  const diff=Math.atan2(Math.sin(Math.atan2(mvx,mvz)-o.a),Math.cos(Math.atan2(mvx,mvz)-o.a));
  drive(o,-Math.max(-1,Math.min(1,diff*2.5)),Math.abs(diff)<1.2?.6:0,dt,TANKS[o.type]);
- if(o.chargeT){if(now-o.chargeT>=CHARGE&&o.hp>0){o.last=now;o.ta+=(Math.random()-.5)*.12;const s=shoot(o,me,false);if(me.hp>0&&hitCheck(s,me)){hitFx(me,s.dx,s.dz);knock(me,s.dx,s.dz,o.rz);damage(me,dmgFor(o,me));if(me.hp<=0)died()}updHud()}}
+ if(o.chargeT){if(now-o.chargeT>=CHARGE&&o.hp>0){o.last=now;o.ta+=(Math.random()-.5)*.12;const s=shoot(o,me,false);if(me.hp>0&&hitCheck(s,me)){hitFx(me,s.dx,s.dz,o.rz);knock(me,s.dx,s.dz,o.rz);damage(me,dmgFor(o,me));if(me.hp<=0)died()}updHud()}}
  else if(now-o.last>RELOAD+800&&Math.abs(da)<.12&&me.hp>0)o.chargeT=now}
 // ---- bonus drops ----
 const ZONES=[{t:'speed',x:-20,z:-4},{t:'repair',x:20,z:4},{t:'defense',x:-6,z:10},{t:'damage',x:6,z:-10}];
@@ -447,7 +447,7 @@ function loop(now){requestAnimationFrame(loop);const dt=Math.min(.05,(now-prev)/
   const wantFire=fireReq||fireHeld||keys.Space||autoF;
   if(me.hp<=0)me.chargeT=0;
   if(me.chargeT){const f=Math.min(1,(now-me.chargeT)/chgOf(me));$('rl').classList.add('ch');$('rli').style.width=f*100+'%';
-   if(f>=1){me.last=now;const s=shoot(me,opp,true);if(hitCheck(s,opp))hitFx(opp,s.dx,s.dz);if(hitCheck(s,opp)&&opp.isBot){knock(opp,s.dx,s.dz,me.rz);damage(opp,dmgFor(me,opp));if(opp.hp<=0){me.kills++;respawnOpp()}updHud()}}}
+   if(f>=1){me.last=now;const s=shoot(me,opp,true);if(hitCheck(s,opp))hitFx(opp,s.dx,s.dz,me.rz);if(hitCheck(s,opp)&&opp.isBot){knock(opp,s.dx,s.dz,me.rz);damage(opp,dmgFor(me,opp));if(opp.hp<=0){me.kills++;respawnOpp()}updHud()}}}
   else{const rl=Math.min(1,(now-me.last)/relOf(me));$('rl').classList.remove('ch');$('rli').style.width=rl*100+'%';
    if(wantFire&&rl>=1&&me.hp>0){me.chargeT=now;if(ws&&ws.readyState==1)ws.send(JSON.stringify({t:'charge'}))}}
   fireReq=false;
@@ -458,14 +458,14 @@ function loop(now){requestAnimationFrame(loop);const dt=Math.min(.05,(now-prev)/
  }
  if(me){for(const t of[me,opp]){const nw=performance.now();let ox=0,oz=0,ux=0,uz=0,tl=0;
   {const rc=recoil(t,nw);if(rc>0){const ax=Math.sin(t.ta),az=Math.cos(t.ta);ox-=ax*.35*rc;oz-=az*.35*rc;tl+=rc;ux+=ax*rc;uz+=az*rc}}
-  {const rc=hitRec(t,nw);if(rc>0){const ax=-t.hitDx,az=-t.hitDz;ox-=ax*.3*rc;oz-=az*.3*rc;tl+=rc*(KNOCK?2.2:1);ux+=ax*rc;uz+=az*rc}}
+  {const rc=hitRec(t,nw);if(rc>0){const ax=-t.hitDx,az=-t.hitDz;ox-=ax*.3*rc;oz-=az*.3*rc;tl+=rc*(KNOCK&&t.hitRz?1.4:1);ux+=ax*rc;uz+=az*rc}}
   t.mesh.position.set(t.x+ox,t.y||0,t.z+oz);t.mesh.quaternion.setFromAxisAngle(YAX,t.a);
   if(t.tp){const kx=t.kdx||0,kz=t.kdz||0,L=Math.hypot(kx,kz)||1;/* shooter-facing side lifts: lift dir u=-k */TQ.setFromAxisAngle(TAX.set(kz/L,0,-kx/L),t.tp);t.mesh.quaternion.premultiply(TQ)}
-  if(tl>0){const L=Math.hypot(ux,uz)||1,ax=ux/L,az=uz/L,ang=Math.min(tl,2.6)*.2;/* model forward=+Z; Rx(-ang) lifts +Z; axis = right of aim dir (cos,0,-sin)*/ TQ.setFromAxisAngle(TAX.set(az,0,-ax),-ang);t.mesh.quaternion.premultiply(TQ)}
+  if(tl>0){const L=Math.hypot(ux,uz)||1,ax=ux/L,az=uz/L,ang=Math.min(tl,1.8)*.15;/* model forward=+Z; Rx(-ang) lifts +Z; axis = right of aim dir (cos,0,-sin)*/ TQ.setFromAxisAngle(TAX.set(az,0,-ax),-ang);t.mesh.quaternion.premultiply(TQ)}
   updTrk(t);  t.mesh.tur.rotation.y=t.ta-t.a;t.mesh.visible=t.hp>0}
   for(const t of[me,opp]){if(t.inv>now)t.mesh.visible=Math.floor(now/120)%2==0;else if(t.inv){t.inv=0;t.mesh.visible=true}updGlow(t,now);updAura(t,now);updIcons(t,now)}updDrops(now,dt);updBuffs(now);
   const cp=Math.cos(camPitch),sp=Math.sin(camPitch),D=9,sx=Math.sin(me.ta),sz=Math.cos(me.ta);
-  cam.position.set(Math.max(-A-4,Math.min(A+4,me.x-sx*cp*D)),1.2+sp*D+(me.y||0)*.6,Math.max(-A-4,Math.min(A+4,me.z-sz*cp*D)));{const sk=performance.now()-shakeT;if(sk<300){const a=(KNOCK?.4:.14)*(1-sk/300)**2;cam.position.x+=(Math.random()-.5)*a;cam.position.y+=(Math.random()-.5)*a;cam.position.z+=(Math.random()-.5)*a}}cam.lookAt(me.x+sx*5,1.2,me.z+sz*5);}
+  cam.position.set(Math.max(-A-4,Math.min(A+4,me.x-sx*cp*D)),1.2+sp*D+(me.y||0)*.6,Math.max(-A-4,Math.min(A+4,me.z-sz*cp*D)));{const sk=performance.now()-shakeT;if(sk<300){const a=shakeA*(1-sk/300)**2;cam.position.x+=(Math.random()-.5)*a;cam.position.y+=(Math.random()-.5)*a;cam.position.z+=(Math.random()-.5)*a}}cam.lookAt(me.x+sx*5,1.2,me.z+sz*5);}
  else{cam.position.set(0,25,-35);cam.lookAt(0,0,0)}
  animTick(now,[me&&me.mesh,opp&&opp.mesh]);renderer.render(scene,cam)}
 requestAnimationFrame(loop);
