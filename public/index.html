@@ -20,7 +20,7 @@ button{font-size:20px;padding:12px 28px;border-radius:10px;border:0;background:#
 </style></head><body>
 <div id="menu"><h2>TANKS 1v1</h2><canvas id="pv" width="480" height="260" style="width:240px;height:130px;border-radius:10px;background:#1a2230;margin:4px 0"></canvas>
 <div>Выбери танк (пушка Railgun):</div>
-<div><div class="card sel" id="c_hornet"><b>Hornet</b><br>Railgun<br>HP 150, медленный</div><div class="card" id="c_wasp"><b>Wasp</b><br>Railgun<br>HP 100, быстрый</div></div>
+<div><div class="card sel" id="c_hornet"><b>Hornet</b><br>Railgun<br>HP 150, средний</div><div class="card" id="c_wasp"><b>Wasp</b><br>Railgun<br>HP 100, быстрый</div></div>
 <div style="margin-top:8px">Краска:</div><div id="paintrow" style="display:flex;align-items:center;justify-content:center;gap:10px;margin:4px 0"><button id="pprev" style="margin:0;padding:8px 16px;font-size:22px">&#9664;</button><div id="pview" style="width:166px;height:106px;border:2px solid #ffb300;border-radius:10px;background:#222;display:flex;align-items:center;justify-content:center;overflow:hidden;font-size:14px"></div><button id="pnext" style="margin:0;padding:8px 16px;font-size:22px">&#9654;</button></div><div id="pcnt" style="font-size:12px;color:#aaa;margin-bottom:6px"></div>
 <div id="mainBtns"><button id="mk">Создать комнату</button>
 <div style="margin-top:12px"><input id="code" maxlength="6" placeholder="КОД" autocapitalize="characters" autocomplete="off"><button id="jn" style="margin-top:0;margin-left:8px;padding:10px 16px;font-size:17px">Войти по коду</button></div>
@@ -38,7 +38,7 @@ button{font-size:20px;padding:12px 28px;border-radius:10px;border:0;background:#
 <script type="module">
 import * as THREE from './three.module.min.js';
 import {GLTFLoader} from './lib/GLTFLoader.js';
-const TANKS={hornet:{hp:150,speed:5,turn:1.8,acc:12,drag:10,tacc:8,color:0x6b7a3a},wasp:{hp:100,speed:10,turn:2.8,acc:17,drag:20,tacc:12,color:0xc9a227}};
+const TANKS={hornet:{hp:150,speed:6,turn:1.8,acc:12,drag:10,tacc:8,color:0x6b7a3a},wasp:{hp:100,speed:10,turn:2.8,acc:17,drag:20,tacc:12,color:0xc9a227}};
 const RELOAD=2000,CHARGE=500;const DMG=50,RANGE=80,A=30,WIN=3,R=1.3;
 const params=new URLSearchParams(location.search);
 let room=(params.get('room')||'').toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,6);
@@ -190,6 +190,7 @@ function beam(ox,oz,dx,dz,len,col,oy=1.5,dy=0){const L=Math.hypot(len,dy),g=new 
 function wallDist(ox,oz,dx,dz){let best=RANGE;for(const b of boxes){const t=rayBox(ox,oz,dx,dz,b);if(t!==null&&t<best)best=t}return best}
 // shooter fires: returns hit?
 let shakeT=0;
+function hop(t,now){const f=(now-t.flashT)/420;return(f>=0&&f<1)?Math.sin(Math.PI*Math.pow(f,.7)):0}
 function recoil(t,now){const f=(now-t.flashT)/420;if(!(f>=0&&f<1))return 0;return f<.12?f/.12:Math.pow(1-(f-.12)/.88,2)}
 function muzzlePos(t){const m=t.mesh.muz||{px:0,pz:0,tip:2.5,y:1.5},c=Math.cos(t.a),sn=Math.sin(t.a),dx=Math.sin(t.ta),dz=Math.cos(t.ta);
  return[t.x+m.px*c+m.pz*sn+dx*m.tip,m.y,t.z-m.px*sn+m.pz*c+dz*m.tip,dx,dz]}
@@ -345,7 +346,7 @@ function loop(now){requestAnimationFrame(loop);const dt=Math.min(.05,(now-prev)/
   sendT+=dt;if(ws&&ws.readyState==1&&sendT>.05){sendT=0;ws.send(JSON.stringify({t:'s',x:me.x,z:me.z,a:me.a,ta:me.ta,hp:me.hp}));}
   if(!opp.isBot)updHud();
  }
- if(me){for(const t of[me,opp]){const rc=recoil(t,performance.now());t.mesh.position.set(t.x-Math.sin(t.ta)*.25*rc,0,t.z-Math.cos(t.ta)*.25*rc);t.mesh.rotation.y=t.a;t.mesh.tur.rotation.y=t.ta-t.a;t.mesh.visible=t.hp>0}
+ if(me){for(const t of[me,opp]){const nw=performance.now(),rc=recoil(t,nw);t.mesh.position.set(t.x-Math.sin(t.ta)*.35*rc,.4*hop(t,nw),t.z-Math.cos(t.ta)*.35*rc);t.mesh.rotation.y=t.a;t.mesh.tur.rotation.y=t.ta-t.a;t.mesh.visible=t.hp>0}
   for(const t of[me,opp]){if(t.inv>now)t.mesh.visible=Math.floor(now/120)%2==0;else if(t.inv){t.inv=0;t.mesh.visible=true}updGlow(t,now);updAura(t,now);updIcons(t,now)}updDrops(now,dt);updBuffs(now);
   const cp=Math.cos(camPitch),sp=Math.sin(camPitch),D=9,sx=Math.sin(me.ta),sz=Math.cos(me.ta);
   cam.position.set(Math.max(-A-4,Math.min(A+4,me.x-sx*cp*D)),1.2+sp*D,Math.max(-A-4,Math.min(A+4,me.z-sz*cp*D)));{const sk=performance.now()-shakeT;if(sk<300){const a=.14*(1-sk/300)**2;cam.position.x+=(Math.random()-.5)*a;cam.position.y+=(Math.random()-.5)*a;cam.position.z+=(Math.random()-.5)*a}}cam.lookAt(me.x+sx*5,1.2,me.z+sz*5);}
