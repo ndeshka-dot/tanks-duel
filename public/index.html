@@ -21,7 +21,7 @@ button{font-size:20px;padding:12px 28px;border-radius:10px;border:0;background:#
 <div id="menu"><h2>TANKS 1v1</h2><canvas id="pv" width="480" height="260" style="width:240px;height:130px;border-radius:10px;background:#1a2230;margin:4px 0"></canvas>
 <div>Выбери танк (пушка Railgun):</div>
 <div><div class="card sel" id="c_hornet"><b>Hornet</b><br>Railgun<br>HP 150, средний</div><div class="card" id="c_wasp"><b>Wasp</b><br>Railgun<br>HP 100, быстрый</div></div>
-<div style="margin-top:8px">Скин:</div><div style="margin:4px 0"><button id="sk_lg" class="card sel" style="width:auto;color:inherit;font-size:16px;padding:8px 18px;margin:0 4px">LG</button><button id="sk_xt" class="card" style="width:auto;color:inherit;font-size:16px;padding:8px 18px;margin:0 4px">XT</button></div>
+<div style="margin-top:8px">Скин:</div><div style="margin:4px 0"><button id="sk_lg" class="card sel" style="width:auto;color:inherit;font-size:16px;padding:8px 18px;margin:0 4px">LG</button><button id="sk_xt" class="card" style="width:auto;color:inherit;font-size:16px;padding:8px 18px;margin:0 4px">XT</button><button id="sk_20" class="card" style="width:auto;color:inherit;font-size:16px;padding:8px 18px;margin:0 4px">2.0</button></div>
 <div style="margin-top:8px">Краска:</div><div id="paintrow" style="display:flex;align-items:center;justify-content:center;gap:10px;margin:4px 0"><button id="pprev" style="margin:0;padding:8px 16px;font-size:22px">&#9664;</button><div id="pview" style="width:166px;height:106px;border:2px solid #ffb300;border-radius:10px;background:#222;display:flex;align-items:center;justify-content:center;overflow:hidden;font-size:14px"></div><button id="pnext" style="margin:0;padding:8px 16px;font-size:22px">&#9654;</button></div><div id="pcnt" style="font-size:12px;color:#aaa;margin-bottom:6px"></div>
 <div id="mainBtns"><button id="mk">Создать комнату</button>
 <div style="margin-top:12px"><input id="code" maxlength="6" placeholder="КОД" autocapitalize="characters" autocomplete="off"><button id="jn" style="margin-top:0;margin-left:8px;padding:10px 16px;font-size:17px">Войти по коду</button></div>
@@ -123,10 +123,10 @@ function makeProcTank(type,skin){if(type=='wasp')return makeWasp(skin||'redgold'
 
 // ---- real models (GLTF) with procedural fallback ----
 const MODELS={};const ML=new GLTFLoader();
-const MDEF={hornet:{url:'models/m3/hornet.gltf',len:3.7},wasp:{url:'models/m3/wasp.gltf',len:3.5},tur:{url:'models/m3/turret.gltf'},hornet_xt:{url:'models/m3/hornet_xt.gltf',len:3.7},wasp_xt:{url:'models/m3/wasp_xt.gltf',len:3.5},tur_xt:{url:'models/m3/flash.gltf'}};
+const MDEF={hornet:{url:'models/m3/hornet.gltf',len:3.7},wasp:{url:'models/m3/wasp.gltf',len:3.5},tur:{url:'models/m3/turret.gltf'},hornet_xt:{url:'models/m3/hornet_xt.gltf',len:3.7},wasp_xt:{url:'models/m3/wasp_xt.gltf',len:3.5},tur_xt:{url:'models/m3/flash.gltf'},hornet_20:{url:'models/m3/hornet_20.gltf',len:3.7},wasp_20:{url:'models/m3/wasp_20.gltf',len:3.5},tur_20:{url:'models/m3/rail20.gltf'}};
 const IMG={};
 const loadImg=(k,u)=>new Promise(r=>{const i=new Image();i.onload=()=>{IMG[k]=i;r()};i.onerror=r;i.src=u});
-const IMGS={};PAINTS.forEach(p=>IMGS[p]='models/paints/'+p+'.jpg');['wasp','hornet','turret','wasp_xt','hornet_xt','flash'].forEach(k=>{IMGS[k+'_l']='models/m3/'+k+'_light.jpg';IMGS[k+'_d']='models/m3/'+k+'_det.png'});
+const IMGS={};PAINTS.forEach(p=>IMGS[p]='models/paints/'+p+'.jpg');['wasp','hornet','turret','wasp_xt','hornet_xt','flash','wasp_20','hornet_20','rail20'].forEach(k=>{IMGS[k+'_l']='models/m3/'+k+'_light.jpg';IMGS[k+'_d']='models/m3/'+k+'_det.png'});
 const loadP=Promise.all(Object.keys(MDEF).map(k=>new Promise(r=>{ML.load(MDEF[k].url,g=>{MODELS[k]=g.scene;r()},undefined,()=>r())})).concat(Object.keys(IMGS).map(k=>loadImg(k,IMGS[k])))).catch(()=>{});
 const paintCache={};
 function paintTex(key,paint){const ck=key+'/'+paint;if(paintCache[ck])return paintCache[ck];
@@ -137,15 +137,15 @@ function paintTex(key,paint){const ck=key+'/'+paint;if(paintCache[ck])return pai
  c.globalCompositeOperation='lighter';c.drawImage(cv,0,0);
  c.globalCompositeOperation='source-over';c.drawImage(D,0,0,cv.width,cv.height);
  const t=new THREE.CanvasTexture(cv);t.flipY=false;t.colorSpace=THREE.SRGBColorSpace;t.anisotropy=2;return paintCache[ck]=t}
-function applyPaint(obj,key,paint){if(!paint)return;const t=paintTex(key,paint);if(!t)return;obj.traverse(o=>{if(o.isMesh){o.material.map=t;o.material.needsUpdate=true}})}
-function makeModelTank(type,paint,skin){const xt=skin==='xt',hk=xt?type+'_xt':type,src=MODELS[hk],ts=xt?MODELS.tur_xt:MODELS.tur;if(!src||!ts)return null;
+function applyPaint(obj,key,paint){if(!paint)return;const t=paintTex(key,paint);if(!t)return;obj.traverse(o=>{if(o.isMesh&&o.material.name!=='track'){o.material.map=t;o.material.needsUpdate=true}})}
+function makeModelTank(type,paint,skin){const sfx=skin==='xt'?'_xt':skin==='20'?'_20':'',xt=sfx!=='',hk=type+sfx,src=MODELS[hk],ts=sfx?MODELS['tur'+sfx]:MODELS.tur;if(!src||!ts)return null;
  const def=MDEF[hk],g=new THREE.Group(),root=src.clone(true);
  const mnt=root.getObjectByName('mount');if(!mnt)return null;const mp=mnt.position.clone();mnt.parent.remove(mnt);
  root.traverse(o=>{if(o.isMesh)o.material=o.material.clone()});
  const hb=new THREE.Box3().setFromObject(root),sz=hb.getSize(new THREE.Vector3()),sc=def.len/sz.z,yoff=-hb.min.y*sc;
  applyPaint(root,hk,paint);root.scale.setScalar(sc);root.position.y=yoff;g.add(root);
  const tur=new THREE.Group();tur.position.set(mp.x*sc,yoff+mp.y*sc,mp.z*sc);g.add(tur);
- const t=ts.clone(true),mz=t.getObjectByName('muzzle'),mzp=mz?mz.position.z:4.13;t.traverse(o=>{if(o.isMesh)o.material=o.material.clone()});applyPaint(t,xt?'flash':'turret',paint);const tb=new THREE.Box3().setFromObject(t);t.scale.setScalar(sc);tur.add(t);
+ const t=ts.clone(true),mz=t.getObjectByName('muzzle'),mzp=mz?mz.position.z:4.13;t.traverse(o=>{if(o.isMesh)o.material=o.material.clone()});applyPaint(t,skin==='xt'?'flash':skin==='20'?'rail20':'turret',paint);const tb=new THREE.Box3().setFromObject(t);t.scale.setScalar(sc);tur.add(t);
  g.muz={px:tur.position.x,pz:tur.position.z,tip:tb.max.z*sc,y:tur.position.y+(mz?mz.position.y:.45)*sc};g.rec=t;g.tur=tur;g.hull=root;scene.add(g);return g}
 let glowTex=null;
 function addGlow(g){if(!glowTex){const c=document.createElement('canvas');c.width=c.height=64;const x=c.getContext('2d'),gr=x.createRadialGradient(32,32,0,32,32,32);gr.addColorStop(0,'rgba(255,255,255,1)');gr.addColorStop(.3,'rgba(160,240,255,.7)');gr.addColorStop(1,'rgba(0,150,255,0)');x.fillStyle=gr;x.fillRect(0,0,64,64);glowTex=new THREE.CanvasTexture(c)}
@@ -233,10 +233,10 @@ const keys={};addEventListener('keydown',e=>{keys[e.code]=1;if(e.code=='Space')f
 // flow
 const PL=['',...PAINTS];['i_base',...PAINTS.map(p=>'i'+p.slice(1))].forEach(n=>{new Image().src='models/paints/'+n+'.webp?v=3'});function showPaint(){const k=myPaint,v=$('pview');v.innerHTML=k?`<img src="models/paints/i${k.slice(1)}.webp?v=3" style="width:100%;height:100%;object-fit:contain">`:'<img src="models/paints/i_base.webp?v=3" style="width:100%;height:100%;object-fit:contain">';$('pcnt').textContent=(PL.indexOf(k)+1)+' / '+PL.length;pvRefresh()}
 const stepPaint=d=>{myPaint=PL[(PL.indexOf(myPaint)+d+PL.length)%PL.length];showPaint()};$('pprev').onclick=()=>stepPaint(-1);$('pnext').onclick=()=>stepPaint(1);showPaint();
-const setSkn=k=>{mySkn=k;$('sk_lg').classList.toggle('sel',k=='lg');$('sk_xt').classList.toggle('sel',k=='xt');pvRefresh()};$('sk_lg').onclick=()=>setSkn('lg');$('sk_xt').onclick=()=>setSkn('xt');
+const setSkn=k=>{mySkn=k;$('sk_20').classList.toggle('sel',k=='20');$('sk_lg').classList.toggle('sel',k=='lg');$('sk_xt').classList.toggle('sel',k=='xt');pvRefresh()};$('sk_lg').onclick=()=>setSkn('lg');$('sk_xt').onclick=()=>setSkn('xt');$('sk_20').onclick=()=>setSkn('20');
 const loadWait=()=>Promise.race([loadP,new Promise(r=>setTimeout(r,6000))]);
 function begin(i,oppType,isBot,oppPaint,oppSkin){drops.forEach(d=>scene.remove(d.sp));drops=[];nextDropAt=performance.now()+4000;pvStop();if(me){scene.remove(me.mesh);scene.remove(opp.mesh)}over=false;$('msg').style.display='none';idx=i;const sp=spawnPos(i),so=spawnPos(1-i);
- me=mk(myType,sp[0],sp[1],sp[2],myPaint,mySkn);opp=mk(oppType,so[0],so[1],so[2],isBot?(Math.random()<.5?'':PAINTS[Math.floor(Math.random()*PAINTS.length)]):(oppPaint||''),isBot?'lg':(oppSkin==='xt'?'xt':'lg'));opp.isBot=isBot;
+ me=mk(myType,sp[0],sp[1],sp[2],myPaint,mySkn);opp=mk(oppType,so[0],so[1],so[2],isBot?(Math.random()<.5?'':PAINTS[Math.floor(Math.random()*PAINTS.length)]):(oppPaint||''),isBot?'lg':(oppSkin==='xt'?'xt':oppSkin==='20'?'20':'lg'));opp.isBot=isBot;
  mode='play';$('menu').style.display='none';['hud','joy','fire','rl'].forEach(id=>$(id).style.display='block');if(matchMedia('(pointer:fine)').matches)$('hint').style.display='block';
  me.last=performance.now()-RELOAD-800;opp.last=performance.now()-RELOAD-800;me.chargeT=opp.chargeT=0;
  $('score').textContent=(isBot?'Бот':'Соперник')+': '+oppType+' Railgun'; setTimeout(updHud,3000);updHud();}
