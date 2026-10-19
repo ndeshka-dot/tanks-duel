@@ -341,15 +341,21 @@ function jugSplitTracks(root,trk){const meshes=[];root.traverse(o=>{if(o.isMesh&
  (Terminator) barrels / breech / rear mechanics keep their own texture. L = light map (luminance), D = kept parts (alpha). */
 const MASK_KEEP={jug:[[0,JUG_TV0-.01,1,1]],term20:[[.425,.755,1,.955],[.33,.745,.44,.84],[.45,.255,.665,.515],[.86,0,1,.315],[.035,.025,.155,.275],[.03,.39,.18,.67]]},
  MASK_METAL={term20:[[.425,.755,1,.955],[.33,.745,.44,.84]]};/* Terminator barrels are bare gun-metal (desaturated), painted or not */
-const MASK_BASE={},MASK_INV={jug:true};/* Juggernaut: paint goes on the grey metal plates, green armour keeps the original texture (tracks never painted) */
+const MASK_BASE={},MASK_INV={jug:true},MASK_GREY={jug:true,term20:true};let GREY_REF=null;/* jug green armour recoloured to grey (unpainted + painted) *//* Juggernaut: paint goes on the grey metal plates, green armour keeps the original texture (tracks never painted) */
 function buildMask(key,img){if(!img||!img.naturalWidth)return;const W=img.naturalWidth,H=img.naturalHeight,cv=document.createElement('canvas');cv.width=W;cv.height=H;const c=cv.getContext('2d');c.drawImage(img,0,0);
  const src=c.getImageData(0,0,W,H),d=src.data,Ld=c.createImageData(W,H),Dd=c.createImageData(W,H),Bd=c.createImageData(W,H),l=Ld.data,dd=Dd.data,bd=Bd.data,inR=(R,x,y)=>R&&R.some(r=>x>=r[0]&&x<=r[2]&&y>=r[1]&&y<=r[3]);
  const m=new Float32Array(W*H);let sum=0,n=0;
  for(let y=0;y<H;y++)for(let x=0;x<W;x++){const i=(y*W+x)*4,r=d[i],g=d[i+1],b=d[i+2],u=x/W,v=y/H;let k=Math.max(0,Math.min(1,(g-Math.max(r,b)-5)/16));if(MASK_INV[key])k=1-k;if(inR(MASK_KEEP[key],u,v))k=0;m[y*W+x]=k;const lu=.3*r+.59*g+.11*b;if(k>.5){sum+=lu;n++}}
- const kL=n?(.36*255)/(sum/n):1;/* armour average light -> 0.36 (x2 by the paint 'lighter' pass ≈ 0.72) like the other hulls */
+ const kL=n?(.36*255)/(sum/n):1;
+ /* MASK_GREY: green armour regions are recoloured to the average grey-plate colour, scaled by their own luminance (shading/detail kept) */
+ let G=null;if(MASK_GREY[key]){let gr=0,gg=0,gb=0,gn=0,gl=0,gc=0;for(let y=0;y<H;y++)for(let x=0;x<W;x++){if(inR(MASK_KEEP[key],x/W,y/H))continue;const i=(y*W+x)*4,r=d[i],g=d[i+1],b=d[i+2],w=Math.max(0,Math.min(1,(g-Math.max(r,b))/10)),lu=.3*r+.59*g+.11*b;
+  if(w<.02&&lu>40){gr+=r;gg+=g;gb+=b;gn++}else if(w>.02){gl+=lu*w;gc+=w}}
+  if(gn&&key==='jug')GREY_REF={r:gr/gn,g:gg/gn,b:gb/gn};const R=key==='jug'?(gn?{r:gr/gn,g:gg/gn,b:gb/gn}:null):GREY_REF;/* one grey tone for hull and gun */
+  if(R&&gc){const ml=gl/gc;G={r:R.r/ml,g:R.g/ml,b:R.b/ml}}}/* armour average light -> 0.36 (x2 by the paint 'lighter' pass ≈ 0.72) like the other hulls */
  for(let y=0;y<H;y++)for(let x=0;x<W;x++){const j=y*W+x,i=j*4,r=d[i],g=d[i+1],b=d[i+2],lu=.3*r+.59*g+.11*b,met=inR(MASK_METAL[key],x/W,y/H);
   const L=Math.min(255,lu*kL);l[i]=l[i+1]=l[i+2]=L;l[i+3]=255;
   const gm=met?Math.min(255,lu*1.05):0;bd[i]=met?gm*.98:r;bd[i+1]=met?gm:g;bd[i+2]=met?gm*1.04:b;bd[i+3]=255;
+  if(G&&!(key==='jug'&&inR(MASK_KEEP[key],x/W,y/H))){/* jug: never the track strip; term20: every green pixel */const w=Math.max(0,Math.min(1,(g-Math.max(r,b))/10));if(w>0){bd[i]=r+(Math.min(255,lu*G.r)-r)*w;bd[i+1]=g+(Math.min(255,lu*G.g)-g)*w;bd[i+2]=b+(Math.min(255,lu*G.b)-b)*w}}
   dd[i]=bd[i];dd[i+1]=bd[i+1];dd[i+2]=bd[i+2];dd[i+3]=Math.round(255*(1-m[j]))}
  const mk=D=>{const q=document.createElement('canvas');q.width=W;q.height=H;q.getContext('2d').putImageData(D,0,0);return q};
  IMG[key+'_l']=mk(Ld);IMG[key+'_d']=mk(Dd);MASK_BASE[key]=mk(Bd)}
@@ -371,7 +377,7 @@ function makeModelTank(type,paint,skin,rz){const sfx=skin==='xt'?'_xt':skin==='2
   const ms=Array.isArray(o.material)?o.material:[o.material];
   ms.forEach(m=>{const e=m.userData||{};if(isTrackMat(m)&&m.map){m.map=m.map.clone();m.map.wrapS=m.map.wrapT=THREE.RepeatWrapping;m.map.needsUpdate=true;trk.push({map:m.map,side:e.side||1,sign:e.sign||-1,rate:e.rate||.5})}});
   o.castShadow=o.receiveShadow=true});
- if(hk==='jug')jugSplitTracks(root,trk);
+ if(hk==='jug')jugSplitTracks(root,trk);if(hk==='jug'&&!paint&&MASK_BASE.jug)applyMap(root,baseTex('jug'));
  applyPaint(root,hk,paint);applyTone(root,hk,!!paint);const hb0=new THREE.Box3().setFromObject(root),sz=hb0.getSize(new THREE.Vector3()),sc=def.len/Math.max(.01,sz.z);
  root.scale.setScalar(sc);root.position.set(0,0,0);g.add(root);
  const tur=new THREE.Group();tur.position.set(mp.x*sc,mp.y*sc,mp.z*sc);g.add(tur);
