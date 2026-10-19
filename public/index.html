@@ -341,11 +341,11 @@ function jugSplitTracks(root,trk){const meshes=[];root.traverse(o=>{if(o.isMesh&
  (Terminator) barrels / breech / rear mechanics keep their own texture. L = light map (luminance), D = kept parts (alpha). */
 const MASK_KEEP={jug:[[0,JUG_TV0-.01,1,1]],term20:[[.425,.755,1,.955],[.33,.745,.44,.84],[.45,.255,.665,.515],[.86,0,1,.315],[.035,.025,.155,.275],[.03,.39,.18,.67]]},
  MASK_METAL={term20:[[.425,.755,1,.955],[.33,.745,.44,.84]]};/* Terminator barrels are bare gun-metal (desaturated), painted or not */
-const MASK_BASE={};
+const MASK_BASE={},MASK_INV={jug:true};/* Juggernaut: paint goes on the grey metal plates, green armour keeps the original texture (tracks never painted) */
 function buildMask(key,img){if(!img||!img.naturalWidth)return;const W=img.naturalWidth,H=img.naturalHeight,cv=document.createElement('canvas');cv.width=W;cv.height=H;const c=cv.getContext('2d');c.drawImage(img,0,0);
  const src=c.getImageData(0,0,W,H),d=src.data,Ld=c.createImageData(W,H),Dd=c.createImageData(W,H),Bd=c.createImageData(W,H),l=Ld.data,dd=Dd.data,bd=Bd.data,inR=(R,x,y)=>R&&R.some(r=>x>=r[0]&&x<=r[2]&&y>=r[1]&&y<=r[3]);
  const m=new Float32Array(W*H);let sum=0,n=0;
- for(let y=0;y<H;y++)for(let x=0;x<W;x++){const i=(y*W+x)*4,r=d[i],g=d[i+1],b=d[i+2],u=x/W,v=y/H;let k=Math.max(0,Math.min(1,(g-Math.max(r,b)-5)/16));if(inR(MASK_KEEP[key],u,v))k=0;m[y*W+x]=k;const lu=.3*r+.59*g+.11*b;if(k>.5){sum+=lu;n++}}
+ for(let y=0;y<H;y++)for(let x=0;x<W;x++){const i=(y*W+x)*4,r=d[i],g=d[i+1],b=d[i+2],u=x/W,v=y/H;let k=Math.max(0,Math.min(1,(g-Math.max(r,b)-5)/16));if(MASK_INV[key])k=1-k;if(inR(MASK_KEEP[key],u,v))k=0;m[y*W+x]=k;const lu=.3*r+.59*g+.11*b;if(k>.5){sum+=lu;n++}}
  const kL=n?(.36*255)/(sum/n):1;/* armour average light -> 0.36 (x2 by the paint 'lighter' pass ≈ 0.72) like the other hulls */
  for(let y=0;y<H;y++)for(let x=0;x<W;x++){const j=y*W+x,i=j*4,r=d[i],g=d[i+1],b=d[i+2],lu=.3*r+.59*g+.11*b,met=inR(MASK_METAL[key],x/W,y/H);
   const L=Math.min(255,lu*kL);l[i]=l[i+1]=l[i+2]=L;l[i+3]=255;
