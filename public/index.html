@@ -47,6 +47,12 @@ button{font-size:20px;padding:12px 28px;border-radius:10px;border:0;background:#
 .shi img{width:76px;height:48px;object-fit:contain}.shi .sk{font-size:20px;font-weight:bold;height:48px;line-height:48px}
 .shi button{margin:4px 0 0;padding:4px 8px;font-size:13px;width:100%}.shi button.no{background:#555;color:#ccc}.shi button.eq{background:#2e7d32;color:#fff}
 #crb{margin:4px 0 2px;padding:6px 14px;font-size:15px;background:#1e88e5;color:#fff}#sherr{color:#f55;font-size:13px;min-height:16px}
+#load{position:fixed;inset:0;z-index:50;display:flex;flex-direction:column;align-items:center;justify-content:center;background:#0d1520;color:#fff;text-align:center}
+#load h1{margin:0 0 18px;font-size:28px;letter-spacing:3px;color:#ffb300}
+#load .bar{position:relative;width:min(320px,70vw);height:14px;background:#1a2430;border:1px solid #ffb300;border-radius:8px;overflow:hidden;top:auto}
+#load .bar i{display:block;height:100%;width:0;background:linear-gradient(90deg,#ffb300,#ff7a00);transition:width .15s}
+#load p{margin:12px 0 0;font-size:14px;color:#aaa}
+@keyframes spin{to{transform:rotate(360deg)}}#load .sp{width:36px;height:36px;border:3px solid #333;border-top-color:#ffb300;border-radius:50%;animation:spin .8s linear infinite;margin-bottom:16px}
 @media (orientation:landscape) and (max-height:560px){
  #menu{flex-direction:row;gap:3vw;padding-top:6px;padding-bottom:6px;overflow-y:auto;height:100dvh;bottom:auto}
  #mleft{flex:0 0 40vw;max-width:40vw;justify-content:center}
@@ -70,8 +76,9 @@ button{font-size:20px;padding:12px 28px;border-radius:10px;border:0;background:#
 <button id="fsb" title="Fullscreen" style="display:none">&#9974;</button>
 <div id="secm"><div class="bx"><div id="secp"><h3>Пароль</h3><input id="secpw" type="password" inputmode="numeric" autocomplete="off"><div id="secerr"></div><div><button id="secok">OK</button><button id="secx1" style="background:#555;color:#fff">Отмена</button></div></div>
 <div id="secs" style="display:none"><h3>Секретные настройки</h3><div class="tg"><span>Aim assist</span><button id="tgaim"></button></div><div class="tg"><span>Auto fire</span><button id="tgfire"></button></div><div class="tg"><span>Прострел стен</span><button id="tgpen"></button></div><div class="tg"><span>RAZEB (Terminator)</span><button id="tgrz"></button></div><div class="tg"><span>Джаггернаут (HP ×20)</span><button id="tgjug"></button></div><div class="tg"><span>Кристаллы: <b id="secv">0</b> 💎</span><button id="tgcr" class="on">+1000 💎</button></div><div style="font-size:12px;opacity:.7;margin:4px 0">Всё действует сразу, кроме Джаггернаута: он включается со следующего боя</div><button id="secx2" style="background:#555;color:#fff">Закрыть</button></div></div></div>
+<div id="load"><div class="sp"></div><h1>TANKS</h1><div class="bar"><i id="loadi"></i></div><p id="loadt">Загрузка… 0%</p></div>
 <div id="shopm"><div class="bx"><h3>Магазин · 💎 <span id="shcr">0</span></h3><div style="font-size:12px;opacity:.7">За каждую победу в дуэли (с ботом или игроком): +100 💎</div><div class="lbl">Скины</div><div id="shsk" class="shgrid"></div><div class="lbl">Краски</div><div id="shpt" class="shgrid"></div><div id="sherr"></div><button id="shx" style="background:#555;color:#fff;margin-top:4px">Закрыть</button></div></div>
-<div id="menu"><button id="secb" title="Settings">&#9881;</button><div id="mleft"><h2>TANKS 1v1</h2><canvas id="pv" width="480" height="260"></canvas></div><div id="mright">
+<div id="menu" style="display:none"><button id="secb" title="Settings">&#9881;</button><div id="mleft"><h2>TANKS 1v1</h2><canvas id="pv" width="480" height="260"></canvas></div><div id="mright">
 <button id="crb">💎 <span id="crv">0</span> · Магазин: скины и краски</button>
 <div class="lbl">Танк (Railgun):</div>
 <div class="skrow" id="tkrow"><div class="card sel" id="c_hornet" title="Hornet Railgun — HP 150, средний"><b>ХР</b></div><div class="card" id="c_wasp" title="Wasp Railgun — HP 100, быстрый"><b>ВР</b></div></div>
@@ -107,15 +114,33 @@ const massOf=t=>(TANKS[t.type]&&TANKS[t.type].mass)||1,dmgK=t=>(TANKS[t.type]&&T
 // scene
 const renderer=new THREE.WebGLRenderer({antialias:false});renderer.setPixelRatio(Math.min(devicePixelRatio,2));
 renderer.setSize(innerWidth,innerHeight);document.body.appendChild(renderer.domElement);
-const scene=new THREE.Scene();scene.background=new THREE.Color(0x87b8e0);scene.fog=new THREE.Fog(0x87b8e0,40,110);
+renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;
+const scene=new THREE.Scene();scene.fog=new THREE.Fog(0x87b8e0,40,110);
 const cam=new THREE.PerspectiveCamera(65,innerWidth/innerHeight,.1,200);
 addEventListener('resize',()=>{renderer.setSize(innerWidth,innerHeight);cam.aspect=innerWidth/innerHeight;cam.updateProjectionMatrix()});
-scene.add(new THREE.HemisphereLight(0xffffff,0x556655,1.0));
-const sun=new THREE.DirectionalLight(0xffffff,.8);sun.position.set(10,20,5);scene.add(sun);
-const ground=new THREE.Mesh(new THREE.PlaneGeometry(A*2,A*2),new THREE.MeshLambertMaterial({color:0x6a7b5a}));ground.rotation.x=-Math.PI/2;scene.add(ground);
-const grid=new THREE.GridHelper(A*2,20,0x445544,0x556655);scene.add(grid);
+function mkTex(draw,w=256,h=w,rep=8){const cv=document.createElement('canvas');cv.width=w;cv.height=h;draw(cv.getContext('2d'),w,h);const t=new THREE.CanvasTexture(cv);t.wrapS=t.wrapT=THREE.RepeatWrapping;t.repeat.set(rep,rep);t.colorSpace=THREE.SRGBColorSpace;t.anisotropy=4;return t}
+const groundMap=mkTex((c,w,h)=>{for(let y=0;y<h;y++)for(let x=0;x<w;x++){const n=Math.sin(x*.37)*.5+Math.cos(y*.29)*.5+Math.sin((x+y)*.11)*.3;c.fillStyle=`rgb(${70+n*12|0},${110+n*22+(Math.random()*16|0)|0},${45+n*10|0})`;c.fillRect(x,y,1,1)}
+ c.fillStyle='rgba(90,70,40,.15)';for(let i=0;i<80;i++){c.beginPath();c.ellipse(Math.random()*w,Math.random()*h,4+Math.random()*12,2+Math.random()*5,Math.random()*6,0,7);c.fill()}},256,256,24);
+const propMap=mkTex((c,w,h)=>{c.fillStyle='#8a8680';c.fillRect(0,0,w,h);for(let y=0;y<h;y+=32)for(let x=0;x<w;x+=32){c.fillStyle=(x+y)%64?'#7a7670':'#949088';c.fillRect(x,y,32,32);c.strokeStyle='#5a5850';c.strokeRect(x+.5,y+.5,31,31)}
+ for(let i=0;i<600;i++){c.fillStyle=`rgba(${40+Math.random()*40|0},${40+Math.random()*40|0},${35+Math.random()*30|0},${.1+Math.random()*.25})`;c.fillRect(Math.random()*w,Math.random()*h,1+Math.random()*3,1+Math.random()*2)}},128,128,2);
+const skyMap=(()=>{const cv=document.createElement('canvas');cv.width=512;cv.height=256;const c=cv.getContext('2d'),g=c.createLinearGradient(0,0,0,256);
+ g.addColorStop(0,'#1a3a6a');g.addColorStop(.35,'#4a8ec8');g.addColorStop(.7,'#87b8e0');g.addColorStop(1,'#c5dff0');c.fillStyle=g;c.fillRect(0,0,512,256);
+ c.fillStyle='rgba(255,255,255,.5)';for(let i=0;i<12;i++){const x=Math.random()*512,y=40+Math.random()*80,rx=30+Math.random()*50;c.beginPath();c.ellipse(x,y,rx,rx*.4,0,0,7);c.fill()}
+ const t=new THREE.CanvasTexture(cv);t.colorSpace=THREE.SRGBColorSpace;return t})();
+scene.background=new THREE.Color(0x87b8e0);
+const sky=new THREE.Mesh(new THREE.SphereGeometry(160,24,16),new THREE.MeshBasicMaterial({map:skyMap,side:THREE.BackSide,fog:false,depthWrite:false}));scene.add(sky);
+scene.add(new THREE.HemisphereLight(0xcfe8ff,0x5a6a40,.4));
+const sun=new THREE.DirectionalLight(0xfff2d6,1.45);sun.position.set(40,55,25);sun.castShadow=true;
+ sun.shadow.mapSize.set(2048,2048);sun.shadow.camera.near=2;sun.shadow.camera.far=200;
+ sun.shadow.camera.left=sun.shadow.camera.bottom=-70;sun.shadow.camera.right=sun.shadow.camera.top=70;
+ sun.shadow.bias=-.00025;sun.shadow.normalBias=.035;scene.add(sun);scene.add(sun.target);
+const sunGlow=new THREE.Mesh(new THREE.SphereGeometry(6,16,16),new THREE.MeshBasicMaterial({color:0xffeeaa,fog:false}));sunGlow.position.copy(sun.position).setLength(140);scene.add(sunGlow);
+const sunHalo=new THREE.Sprite(new THREE.SpriteMaterial({map:(()=>{const cv=document.createElement('canvas');cv.width=cv.height=64;const x=cv.getContext('2d'),g=x.createRadialGradient(32,32,0,32,32,32);g.addColorStop(0,'rgba(255,250,220,1)');g.addColorStop(.3,'rgba(255,200,80,.6)');g.addColorStop(1,'rgba(255,180,0,0)');x.fillStyle=g;x.fillRect(0,0,64,64);return new THREE.CanvasTexture(cv)})(),color:0xffe08a,transparent:true,depthWrite:false,fog:false,blending:THREE.AdditiveBlending}));
+ sunHalo.scale.set(40,40,1);sunHalo.position.copy(sunGlow.position);scene.add(sunHalo);
+const ground=new THREE.Mesh(new THREE.PlaneGeometry(A*2,A*2),new THREE.MeshLambertMaterial({map:groundMap}));ground.rotation.x=-Math.PI/2;ground.receiveShadow=true;scene.add(ground);
+const grid=new THREE.GridHelper(A*2,20,0x445544,0x556655);grid.material.transparent=true;grid.material.opacity=.35;scene.add(grid);
 const boxes=[];
-function addBox(x,z,w,d,h=3,c=0x8a8a92){const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),new THREE.MeshLambertMaterial({color:c}));m.position.set(x,h/2,z);scene.add(m);boxes.push({x,z,hw:w/2,hd:d/2,h,m});}
+function addBox(x,z,w,d,h=3,c=0x8a8a92){const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),new THREE.MeshLambertMaterial({map:propMap,color:c}));m.position.set(x,h/2,z);m.castShadow=m.receiveShadow=true;scene.add(m);boxes.push({x,z,hw:w/2,hd:d/2,h,m});}
 addBox(0,0,6,6);addBox(-12,8,4,8);addBox(12,-8,4,8);addBox(10,12,5,3);addBox(-10,-12,5,3);addBox(0,-18,10,2);addBox(0,18,10,2);
 [[0,-A-.5,A*2,1],[0,A+.5,A*2,1],[-A-.5,0,1,A*2],[A+.5,0,1,A*2]].forEach(w=>addBox(w[0],w[1],w[2],w[3],4,0x555560));
 const BOX0=boxes.slice();
@@ -135,80 +160,27 @@ let jgMap=null;const JG_BOX=[];
 function jgBuild(){if(jgMap)return;JG_HM=new Float32Array(HM_N*HM_N);for(let j=0;j<HM_N;j++)for(let i=0;i<HM_N;i++)JG_HM[j*HM_N+i]=terrHA(i*HM_S-JG_A,j*HM_S-JG_A);jgMap=new THREE.Group();const N=150,S=JG_A*2,g=new THREE.PlaneGeometry(S,S,N,N);g.rotateX(-Math.PI/2);
  const p=g.attributes.position,col=new Float32Array(p.count*3),c=new THREE.Color(),lo=new THREE.Color(0x6a7b5a),hi=new THREE.Color(0xa38d5e);
  for(let i=0;i<p.count;i++){const x=p.getX(i),z=p.getZ(i),h=terrH(x,z);p.setY(i,h);c.copy(lo).lerp(hi,Math.min(1,h/6));const ck=((Math.floor(x/5)+Math.floor(z/5))&1)?1:.93;col[i*3]=c.r*ck;col[i*3+1]=c.g*ck;col[i*3+2]=c.b*ck}
- g.setAttribute('color',new THREE.BufferAttribute(col,3));g.computeVertexNormals();jgMap.add(new THREE.Mesh(g,new THREE.MeshLambertMaterial({vertexColors:true})));
- const mb=(x,z,w,d,h,cl)=>{const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),new THREE.MeshLambertMaterial({color:cl}));m.position.set(x,terrH(x,z)+h/2,z);jgMap.add(m);JG_BOX.push({x,z,hw:w/2,hd:d/2,h,m})};
+ g.setAttribute('color',new THREE.BufferAttribute(col,3));g.computeVertexNormals();
+ const gm=groundMap.clone();gm.repeat.set(48,48);const terrain=new THREE.Mesh(g,new THREE.MeshLambertMaterial({map:gm,vertexColors:true}));terrain.receiveShadow=true;jgMap.add(terrain);
+ const mb=(x,z,w,d,h,cl)=>{const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),new THREE.MeshLambertMaterial({map:propMap,color:cl}));m.position.set(x,terrH(x,z)+h/2,z);m.castShadow=m.receiveShadow=true;jgMap.add(m);JG_BOX.push({x,z,hw:w/2,hd:d/2,h,m})};
  JG_BOXDEF.forEach(b=>mb(b[0],b[1],b[2],b[3],3,0x8a8a92));
  [[0,-JG_A-.5,JG_A*2+2,1],[0,JG_A+.5,JG_A*2+2,1],[-JG_A-.5,0,1,JG_A*2],[JG_A+.5,0,1,JG_A*2]].forEach(w=>mb(w[0],w[1],w[2],w[3],4,0x555560));
  scene.add(jgMap)}
 function setMap(jg){JG=jg;if(jg)jgBuild();A=jg?JG_A:30;RANGE=jg?220:80;ground.visible=grid.visible=!jg;BOX0.forEach(b=>b.m.visible=!jg);if(jgMap)jgMap.visible=jg;
- boxes.length=0;boxes.push(...(jg?JG_BOX:BOX0));scene.fog.near=jg?70:40;scene.fog.far=jg?210:110;cam.far=jg?280:200;cam.updateProjectionMatrix();BOT=jg?JG_BOT:BOT0}
-const SK={redgold:{base:'#9a1a1a',acc:'#d9a82b',dark:'#4a0b0b',light:0xffcc33,metal:0xd9a82b,turret:'#8a1515'},
- camo:{base:'#d8c43a',acc:'#8a7a1c',dark:'#5a5010',light:0xffee66,metal:0x6b6a40,turret:'#cdb52e'},
- silver:{base:'#3f6b2f',acc:'#c4cacc',dark:'#1f3a18',light:0x33f0ff,metal:0xc4cacc,turret:'#34592a'}};
-SK.w_redgold={base:'#2f4a22',acc:'#c9a45a',dark:'#14240e',light:0xff2222,metal:0xc9a45a,turret:'#2a4220'};
-SK.w_camo={base:'#4d5a24',acc:'#8a9a50',dark:'#262e10',light:0xffdd55,metal:0x6e7a3c,turret:'#46531f'};
-SK.w_silver={base:'#4a5a22',acc:'#9aa0a0',dark:'#252d10',light:0x33f0ff,metal:0x8c9090,turret:'#43521f'};
-const skinCache={};
-function rnd(i){const x=Math.sin(i*127.1)*43758.5453;return x-Math.floor(x)}
-function skinMats(k){if(skinCache[k])return skinCache[k];const S=SK[k],N=128,cv=document.createElement('canvas');cv.width=cv.height=N;const c=cv.getContext('2d');
- const mkTex=(base,kind)=>{c.fillStyle=base;c.fillRect(0,0,N,N);
-  if(kind=='camo'){const cols=[S.acc,S.dark,'#f0e060'];for(let i=0;i<46;i++){c.fillStyle=cols[i%3];c.globalAlpha=.75;c.beginPath();c.ellipse(rnd(i)*N,rnd(i+99)*N,6+rnd(i+7)*16,4+rnd(i+3)*10,rnd(i+5)*6,0,7);c.fill();}c.globalAlpha=1;}
-  else{const g=c.createLinearGradient(0,0,0,N);g.addColorStop(0,'rgba(255,255,255,.22)');g.addColorStop(.5,'rgba(0,0,0,0)');g.addColorStop(1,'rgba(0,0,0,.35)');c.fillStyle=g;c.fillRect(0,0,N,N);
-   c.strokeStyle=S.dark;c.lineWidth=2;c.strokeRect(3,3,N-6,N-6);c.beginPath();c.moveTo(0,N/2);c.lineTo(N,N/2);c.moveTo(N/2,0);c.lineTo(N/2,N);c.stroke();
-   c.strokeStyle=S.acc;c.lineWidth=5;c.beginPath();c.moveTo(0,N*.2);c.lineTo(N,N*.2);c.stroke();}
-  const t=new THREE.CanvasTexture((()=>{const n=document.createElement('canvas');n.width=n.height=N;n.getContext('2d').drawImage(cv,0,0);return n})());return t};
- const kind=k=='camo'?'camo':'p';
- const m={hull:new THREE.MeshLambertMaterial({map:mkTex(S.base,kind)}),tur:new THREE.MeshLambertMaterial({map:mkTex(S.turret,kind)}),
-  plate:new THREE.MeshLambertMaterial({color:S.metal}),dark:new THREE.MeshLambertMaterial({color:0x222426}),
-  track:new THREE.MeshLambertMaterial({color:0x2b2b2d}),light:new THREE.MeshBasicMaterial({color:S.light}),
-  barrel:new THREE.MeshLambertMaterial({color:k=='silver'?0xb9c0c2:0x3a3c40})};
- return skinCache[k]=m}
-const gBox=new THREE.BoxGeometry(1,1,1),gCyl=new THREE.CylinderGeometry(.3,.3,.3,10);gCyl.rotateZ(Math.PI/2);
-function part(par,geo,mat,x,y,z,sx,sy,sz,rx){const m=new THREE.Mesh(geo,mat);m.position.set(x,y,z);m.scale.set(sx,sy,sz);if(rx)m.rotation.x=rx;par.add(m);return m}
-function makeWasp(skin){const M=skinMats('w_'+skin),g=new THREE.Group(),W=2.3,L=3.4,hw=W/2;
- part(g,gBox,M.hull,0,.5,0,W-.9,.45,L-.5);
- part(g,gBox,M.hull,0,.5,L/2-.3,W-1.0,.3,.8,.45);
- part(g,gBox,M.hull,0,.5,-L/2+.2,W-1.0,.3,.6,-.45);
- for(const s of[-1,1]){
-  part(g,gBox,M.track,s*(hw-.3),.4,0,.6,.7,L);
-  part(g,gBox,M.track,s*(hw-.3),.4,L/2,.6,.6,.3,0.8);
-  for(let i=0;i<4;i++)part(g,gCyl,M.dark,s*(hw),.38,-L/2+.5+i*(L-1)/3,.5,1.0,1.0);
-  part(g,gBox,M.plate,s*(hw-.3),.78,0,.55,.1,L-.2);
-  if(skin=='redgold'){part(g,gBox,M.plate,s*(hw-.05),.55,.3,.08,.45,L-.6);for(let i=0;i<3;i++)part(g,gBox,M.plate,s*(hw-.3),.84,-.8+i*.4,.5,.04,.12);}
-  part(g,gBox,M.light,s*.25,.62,L/2+.02,.14,.1,.06);}
- part(g,gBox,M.hull,0,.82,-.2,W-1.1,.14,L-1.2);
- if(skin=='camo'){for(const s of[-1,1])part(g,gBox,M.plate,s*.35,.91,-.1,.3,.03,1.4)}
- if(skin=='silver'){const e=new THREE.Mesh(new THREE.CylinderGeometry(.32,.32,.04,16),M.plate);e.position.set(0,.92,-.5);g.add(e);part(g,gBox,M.light,.3,.9,.2,.1,.08,.1)}
- const tur=new THREE.Group();tur.position.y=.9;
- part(tur,gBox,M.tur,0,.1,.3,.8,.22,.9);part(tur,gBox,M.plate,0,.22,.3,.4,.1,.5);
- part(tur,gBox,M.barrel,0,.12,1.5,.14,.14,2.0);part(tur,gBox,M.light,0,.12,2.52,.1,.1,.05);
- g.add(tur);g.tur=tur;g.hull=g;scene.add(g);return g;}
-function makeProcTank(type,skin){if(type=='wasp')return makeWasp(skin||'redgold');const M=skinMats(skin||'redgold'),g=new THREE.Group(),W=type=='hornet'?2.0:1.6,L=3.3,hw=W/2;
- const hull=new THREE.Group();g.add(hull);
- part(hull,gBox,M.hull,0,.62,0,W-.5,.5,L-.4);
- part(hull,gBox,M.hull,0,.55,L/2-.35,W-.5,.35,.9,.5);
- part(hull,gBox,M.hull,0,.55,-L/2+.3,W-.5,.4,.7,-.4);
- for(const s of[-1,1]){
-  part(hull,gBox,M.track,s*(hw-.15),.42,0,.5,.7,L,0);
-  part(hull,gBox,M.plate,s*(hw+.02),.78,0,.1,.38,L-.8);
-  part(hull,gBox,M.plate,s*(hw-.15),.8,L/2-.15,.5,.1,.7,.3);
-  for(let i=0;i<5;i++)part(hull,gCyl,M.dark,s*(hw+.02),.38,-L/2+.4+i*(L-.8)/4,.4,1.05,1.05);
-  part(hull,gBox,M.light,s*(W/2-.5),.72,L/2+.12,.22,.12,.06);}
- if(skin=='redgold')for(const s of[-1,1])for(let i=0;i<3;i++)part(hull,gBox,M.plate,s*(hw+.1),.95+i*.1,-.3-i*.35,.06,.07,.9+i*.3,0);
- const tur=new THREE.Group();tur.position.y=1.0;
- part(tur,gBox,M.tur,0,.15,-.05,1.3,.4,1.5);
- part(tur,gBox,M.tur,0,.42,-.2,.9,.2,1.0);
- part(tur,gBox,M.plate,0,.2,.8,.7,.3,.3);
- for(const s of[-1,1]){part(tur,gBox,M.plate,s*.7,.18,0,.1,.3,1.1);part(tur,gBox,M.light,s*.45,.3,.8,.14,.1,.06);}
- part(tur,gBox,M.barrel,0,.2,1.9,.2,.2,2.2);part(tur,gBox,M.light,0,.2,3.02,.12,.12,.05);
- g.add(tur);g.tur=tur;g.hull=hull;scene.add(g);return g;}
-// ---- real models (GLTF) with procedural fallback ----
+ boxes.length=0;boxes.push(...(jg?JG_BOX:BOX0));scene.fog.near=jg?70:40;scene.fog.far=jg?210:110;cam.far=jg?320:220;cam.updateProjectionMatrix();sky.scale.setScalar(jg?1.6:1);BOT=jg?JG_BOT:BOT0;
+ const e=jg?95:55;sun.shadow.camera.left=sun.shadow.camera.bottom=-e;sun.shadow.camera.right=sun.shadow.camera.top=e;sun.shadow.camera.far=jg?280:200;sun.shadow.camera.updateProjectionMatrix();sun.position.set(jg?70:40,jg?80:55,jg?40:25);sunGlow.position.copy(sun.position).setLength(jg?150:140);sunHalo.position.copy(sunGlow.position)}
+// ---- GLTF tank models only (LG / XT / 2.0 / Juggernaut); legacy procedural box-tanks removed ----
 const MODELS={};const ML=new GLTFLoader();
 const MDEF={hornet:{url:'models/m3/hornet.gltf',len:3.7},wasp:{url:'models/m3/wasp.gltf',len:3.5},tur:{url:'models/m3/turret.gltf'},hornet_xt:{url:'models/m3/hornet_xt.gltf?v=5',len:3.7},wasp_xt:{url:'models/m3/wasp_xt.gltf?v=5',len:3.5},tur_xt:{url:'models/m3/flash.gltf'},hornet_20:{url:'models/m3/hornet_20.gltf?v=5',len:3.7},wasp_20:{url:'models/m3/wasp_20.gltf?v=5',len:3.5},tur_20:{url:'models/m3/rail20.gltf'},tur_rz:{url:'models/m3/term20.gltf?v=4'},jug:{url:'models/m3/jug_v1.gltf?v=1',len:5.15}};
 const IMG={};
-const loadImg=(k,u)=>new Promise(r=>{const i=new Image();i.onload=()=>{IMG[k]=i;r()};i.onerror=r;i.src=u});
 const IMGS={};PAINTS.forEach(p=>{if(p!=='p11')IMGS[p]='models/paints/'+p+'.jpg'});['wasp','hornet','turret','wasp_xt','hornet_xt','flash','wasp_20','hornet_20','rail20','term20','jug'].forEach(k=>{const q=k==='term20'?'?v=3':'';IMGS[k+'_l']='models/m3/'+k+'_light.jpg'+q;IMGS[k+'_d']='models/m3/'+k+'_det.png'+q});
-const loadP=Promise.all(Object.keys(MDEF).map(k=>new Promise(r=>{ML.load(MDEF[k].url,g=>{MODELS[k]=g.scene;r()},undefined,()=>r())})).concat(Object.keys(IMGS).map(k=>loadImg(k,IMGS[k])))).catch(()=>{});
+IMGS.jug_base='models/m3/jug_v1.jpg';
+let loadDone=0,loadTotal=0;
+function loadTick(label){loadDone++;const pct=loadTotal?Math.min(100,Math.round(100*loadDone/loadTotal)):0;const el=$('loadi'),t=$('loadt');if(el)el.style.width=pct+'%';if(t)t.textContent=(label||'Загрузка')+'… '+pct+'%'}
+function loadImg(k,u){return new Promise(r=>{const i=new Image();i.onload=()=>{IMG[k]=i;loadTick('Текстуры');r()};i.onerror=()=>{loadTick('Текстуры');r()};i.src=u})}
+loadTotal=Object.keys(MDEF).length+Object.keys(IMGS).length;
+function revealMenu(){const L=$('load'),M=$('menu');if(L)L.style.display='none';if(M)M.style.display='flex';try{pvRefresh()}catch(e){}}
+const loadP=Promise.all(Object.keys(MDEF).map(k=>new Promise(r=>{ML.load(MDEF[k].url,g=>{MODELS[k]=g.scene;loadTick('Модели');r()},undefined,()=>{loadTick('Модели');r()})})).concat(Object.keys(IMGS).map(k=>loadImg(k,IMGS[k])))).then(()=>{if($('loadt'))$('loadt').textContent='Готово! 100%';if($('loadi'))$('loadi').style.width='100%';setTimeout(revealMenu,280)}).catch(revealMenu);
 const paintCache={};
 // animated paint p11: seamless flowing neon plasma (128px tile, integer spatial frequencies => tiles seamlessly)
 const ANIM_PAINT='p11',PL_N=128,plCv=document.createElement('canvas');plCv.width=plCv.height=PL_N;const plC=plCv.getContext('2d'),plImg=plC.createImageData(PL_N,PL_N),PLUT=new Uint8Array(256*3);
@@ -217,38 +189,73 @@ function plasmaDraw(t){const d=plImg.data,T=Math.PI*2/PL_N;const p1=t*.9,p2=t*.7
  for(let y=0;y<PL_N;y++)for(let x=0;x<PL_N;x++){const a=Math.sin(T*(2*x)+p1)+Math.sin(T*(3*y)-p2)+Math.sin(T*(x+y)+p3)+Math.sin(T*(x-2*y)+p4);
   const hh=((a*.09+t*.06)%1+1)%1,i=(hh*256|0)*3,br=.8+.2*Math.sin(a*1.3);d[k]=PLUT[i]*br;d[k+1]=PLUT[i+1]*br;d[k+2]=PLUT[i+2]*br;d[k+3]=255;k+=4}
  plC.putImageData(plImg,0,0)}
-function paintCompose(cv,L,D,P){const c=cv.getContext('2d');
+function paintCompose(cv,L,D,P,keepTracks){const c=cv.getContext('2d');
  const ts=Math.round(cv.width/4);for(let y=0;y<cv.height;y+=ts)for(let x=0;x<cv.width;x+=ts)c.drawImage(P,x,y,ts,ts);
  c.globalCompositeOperation='multiply';c.drawImage(L,0,0,cv.width,cv.height);
  c.globalCompositeOperation='lighter';c.drawImage(cv,0,0);
- c.globalCompositeOperation='source-over';c.drawImage(D,0,0,cv.width,cv.height)}
+ c.globalCompositeOperation='source-over';c.drawImage(D,0,0,cv.width,cv.height);
+ if(keepTracks){const src=IMG.jug_base||L,band=Math.round(cv.height*.125);c.drawImage(src,0,src.naturalHeight-band,src.naturalWidth,band,0,cv.height-band,cv.width,band)}}
 const animTex=[];
 function paintTex(key,paint){const ck=key+'/'+paint;if(paintCache[ck])return paintCache[ck];
  const anim=paint===ANIM_PAINT,L=IMG[key+'_l'],D=IMG[key+'_d'],P=anim?plCv:IMG[paint];if(!L||!D||!P)return null;
  if(anim&&!plasmaDraw.init){plasmaDraw.init=1;plasmaDraw(0)}
- const cv=document.createElement('canvas');cv.width=L.width;cv.height=L.height;paintCompose(cv,L,D,P);
- const t=new THREE.CanvasTexture(cv);t.flipY=false;t.colorSpace=THREE.SRGBColorSpace;t.anisotropy=2;if(anim){t.userData.anim={cv,L,D};animTex.push(t)}return paintCache[ck]=t}
+ const keep=key==='jug';const cv=document.createElement('canvas');cv.width=L.width;cv.height=L.height;paintCompose(cv,L,D,P,keep);
+ const t=new THREE.CanvasTexture(cv);t.flipY=false;t.colorSpace=THREE.SRGBColorSpace;t.anisotropy=2;if(anim){t.userData.anim={cv,L,D,keep};animTex.push(t)}return paintCache[ck]=t}
 let animLast=0;
 function animTick(now,roots){if(!animTex.length||now-animLast<66)return;const used=new Set();roots.forEach(r=>r&&r.traverse(o=>{if(o.isMesh&&o.material&&o.material.map&&o.material.map.userData.anim)used.add(o.material.map)}));if(!used.size)return;
- animLast=now;plasmaDraw(now/1000);used.forEach(t=>{const a=t.userData.anim;paintCompose(a.cv,a.L,a.D,plCv);t.needsUpdate=true})}
+ animLast=now;plasmaDraw(now/1000);used.forEach(t=>{const a=t.userData.anim;paintCompose(a.cv,a.L,a.D,plCv,a.keep);t.needsUpdate=true})}
 // track animation: scroll belt texture by real travelled distance; left/right belts differ when turning (x>0 side = left)
 function updTrk(t){const m=t.mesh;if(!m||!m.trk||!m.trk.length)return;const px=t._tpx;
  if(px===undefined||t.hp<=0){t._tpx=t.x;t._tpz=t.z;t._tpa=t.a;return}
  const dx=t.x-px,dz=t.z-t._tpz;let da=t.a-t._tpa;da=Math.atan2(Math.sin(da),Math.cos(da));t._tpx=t.x;t._tpz=t.z;t._tpa=t.a;
  if(dx*dx+dz*dz>9)return;const d=dx*Math.sin(t.a)+dz*Math.cos(t.a);
  for(const k of m.trk){const ds=d-da*k.side*m.trkX;k.map.offset.x=(k.map.offset.x+k.sign*k.rate*ds/m.trkSc)%1}}
-function applyPaint(obj,key,paint){if(!paint)return;const t=paintTex(key,paint);if(!t)return;obj.traverse(o=>{if(o.isMesh&&o.material.name!=='track'){o.material.map=t;o.material.needsUpdate=true}})}
-function makeModelTank(type,paint,skin,rz){const sfx=skin==='xt'?'_xt':skin==='20'?'_20':'',xt=sfx!=='',hk=type==='jug'?'jug':type+sfx,src=MODELS[hk],ts=rz&&MODELS.tur_rz?MODELS.tur_rz:(sfx?MODELS['tur'+sfx]:MODELS.tur);rz=rz&&ts===MODELS.tur_rz;if(!src||!ts)return null;
+const isTrackMat=m=>!!(m&&(m.name==='track'||m.userData.rate!=null||m.userData.side!=null||m.userData.trk));
+function applyPaint(obj,key,paint){if(!paint)return;const t=paintTex(key,paint);if(!t)return;
+ obj.traverse(o=>{if(!o.isMesh)return;const ms=Array.isArray(o.material)?o.material:[o.material];ms.forEach(m=>{if(m&&!isTrackMat(m)){m.map=t;m.needsUpdate=true}})})}
+/* Juggernaut = one atlas (hull + track belt). Split faces whose UVs sit on the track strip (bottom of image ≈ low glTF V) into a scrolling track material. */
+function jugSplitTracks(root,trk){const meshes=[];root.traverse(o=>{if(o.isMesh&&o.geometry)meshes.push(o)});
+ for(const o of meshes){const g0=o.geometry,uv=g0.attributes.uv,pos=g0.attributes.position,nor=g0.attributes.normal,idx=g0.index;if(!pos||!idx)continue;
+  /* tracks sit on the outer sides near the ground: |x| large, y low. Atlas UVs for those faces are mixed, so we split by position, not UV. */
+  let yMax=-1e9,xMax=0;for(let i=0;i<pos.count;i++){yMax=Math.max(yMax,pos.getY(i));xMax=Math.max(xMax,Math.abs(pos.getX(i)))}
+  const yCut=yMax*.58,xCut=xMax*.38;const hullI=[],trkI=[],ia=idx.array;
+  for(let i=0;i<ia.length;i+=3){const a=ia[i],b=ia[i+1],c=ia[i+2];const yl=(pos.getY(a)+pos.getY(b)+pos.getY(c))/3,xa=(Math.abs(pos.getX(a))+Math.abs(pos.getX(b))+Math.abs(pos.getX(c)))/3;
+   ((yl<yCut&&xa>xCut)?trkI:hullI).push(a,b,c)}
+  if(trkI.length<12||hullI.length<12)continue;
+  function sub(ids){const map=new Map(),pi=[],ui=[],ni=[],ii=[];ids.forEach(i=>{if(!map.has(i)){map.set(i,pi.length/3);pi.push(pos.getX(i),pos.getY(i),pos.getZ(i));if(uv)ui.push(uv.getX(i)*3,uv.getY(i)*2);else ui.push(0,0);if(nor)ni.push(nor.getX(i),nor.getY(i),nor.getZ(i))}ii.push(map.get(i))});
+   const ng=new THREE.BufferGeometry();ng.setAttribute('position',new THREE.Float32BufferAttribute(pi,3));ng.setAttribute('uv',new THREE.Float32BufferAttribute(ui,2));if(ni.length)ng.setAttribute('normal',new THREE.Float32BufferAttribute(ni,3));else ng.computeVertexNormals();ng.setIndex(ii);return ng}
+  const hm=o.material.clone();hm.name='hull';
+  const cv=document.createElement('canvas');cv.width=256;cv.height=64;const c=cv.getContext('2d'),base=IMG.jug_base||IMG.jug_l;
+  if(base){const band=Math.max(8,Math.round(base.naturalHeight*.125));c.drawImage(base,0,base.naturalHeight-band,base.naturalWidth,band,0,0,256,64)}
+  else{for(let x=0;x<256;x+=12){c.fillStyle=x%24?'#6a6a6a':'#3a3a3a';c.fillRect(x,0,10,64)}}
+  const tmap=new THREE.CanvasTexture(cv);tmap.wrapS=tmap.wrapT=THREE.RepeatWrapping;tmap.flipY=false;tmap.colorSpace=THREE.SRGBColorSpace;
+  const tm=new THREE.MeshLambertMaterial({map:tmap,name:'track'});tm.userData={rate:.7,side:1,sign:-1,trk:1};
+  const hullM=new THREE.Mesh(sub(hullI),hm),trkM=new THREE.Mesh(sub(trkI),tm);
+  hullM.castShadow=trkM.castShadow=hullM.receiveShadow=trkM.receiveShadow=true;
+  const par=o.parent;if(!par)continue;par.add(hullM);par.add(trkM);par.remove(o);
+  trk.push({map:tmap,side:1,sign:-1,rate:.7});trk.push({map:tmap,side:-1,sign:-1,rate:.7})}}
+function makeModelTank(type,paint,skin,rz){const sfx=skin==='xt'?'_xt':skin==='20'?'_20':'',hk=type==='jug'?'jug':type+sfx,src=MODELS[hk],ts=rz&&MODELS.tur_rz?MODELS.tur_rz:(sfx?MODELS['tur'+sfx]:MODELS.tur);rz=rz&&ts===MODELS.tur_rz;if(!src||!ts)return null;
  const def=MDEF[hk],g=new THREE.Group(),root=src.clone(true);
  const mnt=root.getObjectByName('mount');if(!mnt)return null;const mp=mnt.position.clone();mnt.parent.remove(mnt);
- const trk=[];root.traverse(o=>{if(o.isMesh){o.material=o.material.clone();const m=o.material,e=m.userData||{};if(m.name==='track'&&m.map&&e.rate){m.map=m.map.clone();m.map.wrapS=m.map.wrapT=THREE.RepeatWrapping;m.map.needsUpdate=true;trk.push({map:m.map,side:e.side,sign:e.sign,rate:e.rate})}}});
- const hb=new THREE.Box3().setFromObject(root),sz=hb.getSize(new THREE.Vector3()),sc=def.len/sz.z,yoff=-hb.min.y*sc;
- applyPaint(root,hk,paint);root.scale.setScalar(sc);root.position.y=yoff;g.add(root);
+ const trk=[];root.traverse(o=>{if(!o.isMesh)return;
+  if(Array.isArray(o.material))o.material=o.material.map(m=>m.clone());else o.material=o.material.clone();
+  const ms=Array.isArray(o.material)?o.material:[o.material];
+  ms.forEach(m=>{const e=m.userData||{};if(isTrackMat(m)&&m.map){m.map=m.map.clone();m.map.wrapS=m.map.wrapT=THREE.RepeatWrapping;m.map.needsUpdate=true;trk.push({map:m.map,side:e.side||1,sign:e.sign||-1,rate:e.rate||.5})}});
+  o.castShadow=o.receiveShadow=true});
+ if(hk==='jug')jugSplitTracks(root,trk);
+ /* unpainted jug: rebuild albedo from light+det (+base) so the baked jug_v1.jpg alone doesn't look mixed-up vs the paint pipeline */
+ if(hk==='jug'&&!paint&&IMG.jug_l&&IMG.jug_d){const cv=document.createElement('canvas');cv.width=IMG.jug_l.width;cv.height=IMG.jug_l.height;paintCompose(cv,IMG.jug_l,IMG.jug_d,IMG.jug_base||IMG.jug_l,true);const tx=new THREE.CanvasTexture(cv);tx.flipY=false;tx.colorSpace=THREE.SRGBColorSpace;
+  root.traverse(o=>{if(!o.isMesh)return;const ms=Array.isArray(o.material)?o.material:[o.material];ms.forEach(m=>{if(m&&!isTrackMat(m)){m.map=tx;m.needsUpdate=true}})})}
+ applyPaint(root,hk,paint);const hb=new THREE.Box3().setFromObject(root),sz=hb.getSize(new THREE.Vector3()),sc=def.len/sz.z,yoff=-hb.min.y*sc;
+ root.scale.setScalar(sc);root.position.y=yoff;g.add(root);
  const tur=new THREE.Group();tur.position.set(mp.x*sc,yoff+mp.y*sc,mp.z*sc);g.add(tur);
- const t=ts.clone(true),mz=rz?t.getObjectByName('muzzle_l'):t.getObjectByName('muzzle'),mzr=rz?t.getObjectByName('muzzle_r'):null,mzp=mz?mz.position.z:4.13;t.traverse(o=>{if(o.isMesh)o.material=o.material.clone()});applyPaint(t,rz?'term20':skin==='xt'?'flash':skin==='20'?'rail20':'turret',paint);const tb=new THREE.Box3().setFromObject(t);t.scale.setScalar(sc);tur.add(t);
- g.muz={px:tur.position.x,pz:tur.position.z,tip:tb.max.z*sc,y:tur.position.y+(mz?mz.position.y:.45)*sc};if(rz&&mz&&mzr){g.muz.tip=mz.position.z*sc;g.muz.bar=[mz.position.x*sc,mzr.position.x*sc]}g.rec=t;g.tur=tur;g.hull=root;g.trk=trk;g.trkSc=sc;g.trkX=1.05*sc;scene.add(g);return g}
+ const t=ts.clone(true),mz=rz?t.getObjectByName('muzzle_l'):t.getObjectByName('muzzle'),mzr=rz?t.getObjectByName('muzzle_r'):null;
+ t.traverse(o=>{if(!o.isMesh)return;o.material=Array.isArray(o.material)?o.material.map(m=>m.clone()):o.material.clone();o.castShadow=o.receiveShadow=true});
+ applyPaint(t,rz?'term20':skin==='xt'?'flash':skin==='20'?'rail20':'turret',paint);const tb=new THREE.Box3().setFromObject(t);t.scale.setScalar(sc);tur.add(t);
+ g.muz={px:tur.position.x,pz:tur.position.z,tip:tb.max.z*sc,y:tur.position.y+(mz?mz.position.y:.45)*sc};if(rz&&mz&&mzr){g.muz.tip=mz.position.z*sc;g.muz.bar=[mz.position.x*sc,mzr.position.x*sc]}
+ g.rec=t;g.tur=tur;g.hull=root;g.trk=trk;g.trkSc=sc;g.trkX=1.05*sc;scene.add(g);return g}
 let glowTex=null;
-function addGlow(g){if(!glowTex){const c=document.createElement('canvas');c.width=c.height=64;const x=c.getContext('2d'),gr=x.createRadialGradient(32,32,0,32,32,32);gr.addColorStop(0,'rgba(255,255,255,1)');gr.addColorStop(.3,'rgba(160,240,255,.7)');gr.addColorStop(1,'rgba(0,150,255,0)');x.fillStyle=gr;x.fillRect(0,0,64,64);glowTex=new THREE.CanvasTexture(c)}
+function addGlow(g){if(!g||!g.tur)return;if(!glowTex){const c=document.createElement('canvas');c.width=c.height=64;const x=c.getContext('2d'),gr=x.createRadialGradient(32,32,0,32,32,32);gr.addColorStop(0,'rgba(255,255,255,1)');gr.addColorStop(.3,'rgba(160,240,255,.7)');gr.addColorStop(1,'rgba(0,150,255,0)');x.fillStyle=gr;x.fillRect(0,0,64,64);glowTex=new THREE.CanvasTexture(c)}
  if(!g.muz)g.muz={px:0,pz:0,tip:2.8,y:1.15};
  const mk=(sz,col)=>{const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:glowTex,color:col,transparent:true,opacity:0,blending:THREE.AdditiveBlending,depthWrite:false,depthTest:false}));sp.scale.set(sz,sz,1);sp.renderOrder=10;return sp};
  const gl=new THREE.Group();gl.position.set(0,g.muz.y-g.tur.position.y,g.muz.tip);const halo=mk(1.6,0x55ddff),core=mk(.7,0xffffff);gl.add(halo,core);gl.visible=false;gl.halo=halo;gl.core=core;g.tur.add(gl);g.glow=gl;const au=mk(5.5,0xffffff);au.position.y=.7;au.visible=false;au.material.depthTest=true;g.add(au);g.aura=au}
@@ -256,23 +263,23 @@ function updGlow(t,now){const g=t.mesh.glow;if(!g)return;let sc=0,op=0;const br=
  if(t.chargeT){const f=Math.min(1,(now-t.chargeT)/chgOf(t));sc=.2+1.5*f*f;op=.2+.8*f}
  else if(now-t.flashT<220){const f=(now-t.flashT)/220;sc=.5+2.4*(1-f);op=1-f}
  g.visible=op>0;g.scale.setScalar(sc);g.halo.material.opacity=op;g.halo.material.color.setHex(t===me?0x55ddff:0xff7799);g.core.material.opacity=Math.min(1,op*1.3)}
-function makeTank(type,paint,skin,rz){let m=null;try{m=makeModelTank(type,paint,skin,rz)}catch(e){console.warn(e)}m=m||makeProcTank(type,'silver');addGlow(m);return m}
+function makeTank(type,paint,skin,rz){let m=null;try{m=makeModelTank(type,paint,skin,rz)}catch(e){console.warn(e)}if(!m){console.warn('model missing',type,skin);return null}addGlow(m);return m}
 // ---- menu preview ----
 const pvCv=$('pv'),pvR=new THREE.WebGLRenderer({canvas:pvCv,antialias:true,alpha:false});pvR.setPixelRatio(Math.min(devicePixelRatio,2));pvR.setSize(240,130,false);
-const pvS=new THREE.Scene();pvS.background=new THREE.Color(0x1a2230);pvS.add(new THREE.HemisphereLight(0xffffff,0x445566,1.1));const pvL=new THREE.DirectionalLight(0xffffff,.9);pvL.position.set(4,6,3);pvS.add(pvL);
+const pvS=new THREE.Scene();pvS.background=new THREE.Color(0x1a2230);pvS.add(new THREE.HemisphereLight(0xffffff,0x445566,1.0));const pvL=new THREE.DirectionalLight(0xfff0d0,1.2);pvL.position.set(4,6,3);pvS.add(pvL);
 const pvC=new THREE.PerspectiveCamera(35,240/130,.1,50);pvC.position.set(0,2.9,7.4);pvC.lookAt(0,.75,0);
 const pvGround=new THREE.Mesh(new THREE.CylinderGeometry(2.6,2.6,.05,32),new THREE.MeshLambertMaterial({color:0x2d3a4a}));pvGround.position.y=-.03;pvS.add(pvGround);
 let pvT=null,pvOn=true,pvK='';
 function pvRefresh(){const k=eT()+'/'+myPaint+'/'+mySkn+'/'+SEC.rz+'/'+Object.keys(MODELS).length+Object.keys(IMG).length;if(k==pvK)return;pvK=k;
- if(pvT){pvS.remove(pvT)}try{pvT=makeTank(eT(),myPaint,mySkn,SEC.rz);scene.remove(pvT);pvS.add(pvT);pvT.tur.rotation.y=0}catch(e){console.warn(e)}}
-loadP.then(pvRefresh);pvRefresh();
+ if(pvT){pvS.remove(pvT);pvT=null}try{const t=makeTank(eT(),myPaint,mySkn,SEC.rz);if(!t)return;pvT=t;if(t.parent)t.parent.remove(t);pvS.add(pvT);pvT.tur.rotation.y=0}catch(e){console.warn(e)}}
+/* preview refreshes when loadP finishes and shows the menu */
 let pvLast=performance.now();
 function pvLoop(now){if(!pvOn)return;requestAnimationFrame(pvLoop);const dt=Math.min(.05,(now-pvLast)/1000);pvLast=now;
  if(pvT){pvT.rotation.y+=dt*.6;pvT.tur.rotation.y=Math.sin(now/1500)*.35}animTick(now,[pvT]);pvR.render(pvS,pvC)}
 requestAnimationFrame(pvLoop);
 function pvStop(){pvOn=false;pvS.remove(pvT);pvR.dispose();pvCv.style.display='none'}
 // state: yaw 0 => facing +z. tank a = hull yaw, ta = turret world yaw
-function mk(type,x,z,a,paint,skin,rz){return{pa:paint,sk:skin,rz:!!rz,bi:0,fb:0,type,x,z,a,ta:a,hp:TANKS[type].hp,max:TANKS[type].hp,mesh:makeTank(type,paint,skin,rz),kills:0,last:0,v:0,w:0,chargeT:0,flashT:0,buffs:{}}}
+function mk(type,x,z,a,paint,skin,rz){const mesh=makeTank(type,paint,skin,rz);if(!mesh)throw new Error('tank model not loaded: '+type);return{pa:paint,sk:skin,rz:!!rz,bi:0,fb:0,type,x,z,a,ta:a,hp:TANKS[type].hp,max:TANKS[type].hp,mesh,kills:0,last:0,v:0,w:0,chargeT:0,flashT:0,buffs:{}}}
 let me,opp,mode='menu',idx=0,ws,bot=null,over=false;
 let DM=false,JG=false,dmT=[];const JG_N=10,JG_WIN=Math.max(1,+params.get('jgwin')||100),JG_RESP=3000,JG_SAFE=40,CR_JG=500;const DM_LIM=Math.max(1,+params.get('dmlim')||15),DM_N=8,DM_RESP=2500;
 function spawnPos(i){return i==0?[0,-24,0]:[0,24,Math.PI]}
@@ -433,7 +440,7 @@ const PL=['',...PAINTS];['i_base',...PAINTS.map(p=>'i'+p.slice(1))].forEach(n=>{
 $('crb').onclick=openShop;$('shx').onclick=()=>{$('shopm').style.display='none'};
 showPaint();
 const setSkn=k=>{if(!ownsSkn(k))return openShop();mySkn=k;$('sk_20').classList.toggle('sel',k=='20');$('sk_lg').classList.toggle('sel',k=='lg');$('sk_xt').classList.toggle('sel',k=='xt');pvRefresh()};$('sk_lg').onclick=()=>setSkn('lg');$('sk_xt').onclick=()=>setSkn('xt');$('sk_20').onclick=()=>setSkn('20');crUi();
-const loadWait=()=>Promise.race([loadP,new Promise(r=>setTimeout(r,6000))]);
+const loadWait=()=>loadP;
 function begin(i,oppType,isBot,oppPaint,oppSkin,oppRz,oppJug){fixLoadout();altReset();setMap(false);ultB.style.display='none';DM=false;dmReset();drops.forEach(d=>scene.remove(d.sp));drops=[];nextDropAt=performance.now()+4000;pvStop();if(me){scene.remove(me.mesh);scene.remove(opp.mesh)}over=false;$('msg').style.display='none';idx=i;const sp=spawnPos(i),so=spawnPos(1-i);
  me=mk(eT(),sp[0],sp[1],sp[2],myPaint,mySkn,SEC.rz);opp=mk(oppJug?'jug':oppType,so[0],so[1],so[2],isBot?rndPaint():(oppPaint||''),isBot?rndSkn():(oppSkin==='xt'?'xt':oppSkin==='20'?'20':'lg'),!isBot&&oppRz===true);opp.isBot=isBot;me.base=myType;opp.base=oppType;
  mode='play';$('menu').style.display='none';['hud','joy','fire','rl'].forEach(id=>$(id).style.display='block');if(matchMedia('(pointer:fine)').matches)$('hint').style.display='block';
