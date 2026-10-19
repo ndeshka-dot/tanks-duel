@@ -9,7 +9,7 @@ function scheduleDrop(r,first){r.dt=setTimeout(()=>{if(!r.started)return;
   if(free.length){const zone=free[Math.floor(Math.random()*free.length)],id=r.nid=(r.nid||0)+1;r.drops[id]={zone};
     r.forEach(w=>send(w,{t:'drop',id,zone,ts:Date.now()}));
     r.exp.push(setTimeout(()=>{if(r.drops[id]){delete r.drops[id];r.forEach(w=>send(w,{t:'dropgone',id}))}},30000));}
-  scheduleDrop(r,false)},first?4000:15000+Math.random()*5000)}const PAINTS=['p0','p1','p2','p3','p4','p5','p6','p7','p8','p9','p10','p11'];
+  scheduleDrop(r,false)},first?4000:15000+Math.random()*5000)}const PAINTS=['p0','p1','p2','p3','p4','p5','p6','p7','p8','p9','p10','p11','p12','p13','p14'];
 const send=(w,o)=>{if(w&&w.readyState===1)w.send(JSON.stringify(o))};
 function tryStart(r){
   if(r.length===2&&!r.started&&r.every(w=>w.ready)){r.started=true;stopDrops(r);scheduleDrop(r,true);
