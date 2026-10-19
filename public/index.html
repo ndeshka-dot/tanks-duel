@@ -256,16 +256,16 @@ function setMap(jg){JG=jg;if(jg)jgBuild();A=jg?JG_A:30;RANGE=jg?220:80;ground.vi
  const e=jg?95:55;sun.shadow.camera.left=sun.shadow.camera.bottom=-e;sun.shadow.camera.right=sun.shadow.camera.top=e;sun.shadow.camera.far=jg?280:200;sun.shadow.camera.updateProjectionMatrix();sun.position.set(jg?70:40,jg?80:55,jg?40:25);sunGlow.position.copy(sun.position).setLength(jg?150:140);sunHalo.position.copy(sunGlow.position)}
 // ---- GLTF tank models only (LG / XT / 2.0 / Juggernaut); legacy procedural box-tanks removed ----
 const MODELS={};const ML=new GLTFLoader();
-const MDEF={hornet:{url:'models/m3/hornet.gltf',len:3.7},wasp:{url:'models/m3/wasp.gltf',len:3.5},tur:{url:'models/m3/turret.gltf'},hornet_xt:{url:'models/m3/hornet_xt.gltf?v=5',len:3.7},wasp_xt:{url:'models/m3/wasp_xt.gltf?v=5',len:3.5},tur_xt:{url:'models/m3/flash.gltf'},hornet_20:{url:'models/m3/hornet_20.gltf?v=5',len:3.7},wasp_20:{url:'models/m3/wasp_20.gltf?v=5',len:3.5},tur_20:{url:'models/m3/rail20.gltf'},tur_rz:{url:'models/m3/term20.gltf?v=4'},jug:{url:'models/m3/jug_v1.gltf?v=1',len:5.15}};
+const MDEF={hornet:{url:'models/m3/hornet.gltf',len:3.7},wasp:{url:'models/m3/wasp.gltf',len:3.5},tur:{url:'models/m3/turret.gltf'},hornet_xt:{url:'models/m3/hornet_xt.gltf?v=5',len:3.7},wasp_xt:{url:'models/m3/wasp_xt.gltf?v=5',len:3.5},tur_xt:{url:'models/m3/flash.gltf'},hornet_20:{url:'models/m3/hornet_20.gltf?v=5',len:3.7},wasp_20:{url:'models/m3/wasp_20.gltf?v=5',len:3.5},tur_20:{url:'models/m3/rail20.gltf'},tur_rz:{url:'models/m3/term_tk.gltf?v=1'},jug:{url:'models/m3/jug_tk.gltf?v=1',len:5.15}};
 const IMG={};
 const IMGS={};PAINTS.forEach(p=>{if(!ANIMS[p])IMGS[p]='models/paints/'+p+'.jpg'});['wasp','hornet','turret','wasp_xt','hornet_xt','flash','wasp_20','hornet_20','rail20'].forEach(k=>{const q='';IMGS[k+'_l']='models/m3/'+k+'_light.jpg'+q;IMGS[k+'_d']='models/m3/'+k+'_det.png'+q});
-IMGS.jug_base='models/m3/jug_v1.jpg';IMGS.term20_base='models/m3/term20.jpg?v=4';
+IMGS.jug_tk='models/m3/jug_tk.png';IMGS.term20_tk='models/m3/term_tk.png';IMGS.jug_tka='models/m3/jug_tk_a.png';IMGS.term20_tka='models/m3/term_tk_a.png';/* original Tanki HTML5 lightmap.webp split offline into RGB (lightmap/detail colour) + _a (details mask, white = never painted): canvas premultiplies alpha and would zero the RGB under A=0 */
 let loadDone=0,loadTotal=0;
 function loadTick(label){loadDone++;const pct=loadTotal?Math.min(100,Math.round(100*loadDone/loadTotal)):0;const el=$('loadi'),t=$('loadt');if(el)el.style.width=pct+'%';if(t)t.textContent=(label||'Загрузка')+'… '+pct+'%'}
 function loadImg(k,u){return new Promise(r=>{const i=new Image();i.onload=()=>{IMG[k]=i;loadTick('Текстуры');r()};i.onerror=()=>{loadTick('Текстуры');r()};i.src=u})}
 loadTotal=Object.keys(MDEF).length+Object.keys(IMGS).length;
 function revealMenu(){const L=$('load'),M=$('menu');if(L)L.style.display='none';if(M)M.style.display='flex';try{pvRefresh()}catch(e){}}
-const loadP=Promise.all(Object.keys(MDEF).map(k=>new Promise(r=>{ML.load(MDEF[k].url,g=>{MODELS[k]=g.scene;loadTick('Модели');r()},undefined,()=>{loadTick('Модели');r()})})).concat(Object.keys(IMGS).map(k=>loadImg(k,IMGS[k])))).then(()=>{try{buildMask('jug',IMG.jug_base);buildMask('term20',IMG.term20_base)}catch(e){console.warn(e)}if($('loadt'))$('loadt').textContent='Готово! 100%';if($('loadi'))$('loadi').style.width='100%';setTimeout(revealMenu,280)}).catch(revealMenu);
+const loadP=Promise.all(Object.keys(MDEF).map(k=>new Promise(r=>{ML.load(MDEF[k].url,g=>{MODELS[k]=g.scene;loadTick('Модели');r()},undefined,()=>{loadTick('Модели');r()})})).concat(Object.keys(IMGS).map(k=>loadImg(k,IMGS[k])))).then(()=>{try{tankiLayers('jug',IMG.jug_tk,IMG.jug_tka);tankiLayers('term20',IMG.term20_tk,IMG.term20_tka)}catch(e){console.warn(e)}if($('loadt'))$('loadt').textContent='Готово! 100%';if($('loadi'))$('loadi').style.width='100%';setTimeout(revealMenu,280)}).catch(revealMenu);
 const paintCache={};
 // animated paint p11: seamless flowing neon plasma (128px tile, integer spatial frequencies => tiles seamlessly)
 const ANIM_PAINT='p11',PL_N=128,PLUT=new Uint8Array(256*3);
@@ -314,11 +314,10 @@ function updTrk(t){const m=t.mesh;if(!m||!m.trk||!m.trk.length)return;const px=t
  if(dx*dx+dz*dz>9)return;const d=dx*Math.sin(t.a)+dz*Math.cos(t.a);
  for(const k of m.trk){const ds=d-da*k.side*m.trkX;k.map.offset.x=(k.map.offset.x+k.sign*k.rate*ds/m.trkSc)%1}}
 const isTrackMat=m=>!!(m&&(m.name==='track'||m.userData.rate!=null||m.userData.side!=null||m.userData.trk));
-const baseTexC={};function baseTex(k){if(baseTexC[k])return baseTexC[k];const t=new THREE.CanvasTexture(MASK_BASE[k]);t.flipY=false;t.colorSpace=THREE.SRGBColorSpace;t.anisotropy=2;return baseTexC[k]=t}
 function applyMap(obj,t){obj.traverse(o=>{if(!o.isMesh)return;const ms=Array.isArray(o.material)?o.material:[o.material];ms.forEach(m=>{if(m&&!isTrackMat(m)){m.map=t;m.needsUpdate=true}})})}
 function applyPaint(obj,key,paint){if(!paint)return;const t=paintTex(key,paint);if(!t)return;
  obj.traverse(o=>{if(!o.isMesh)return;const ms=Array.isArray(o.material)?o.material:[o.material];ms.forEach(m=>{if(m&&!isTrackMat(m)){m.map=t;m.needsUpdate=true}})})}
-/* Juggernaut = one atlas (jug_v1.jpg). The track belt is the strip at the bottom of the image (glTF V >= JUG_TV0).
+/* Juggernaut = one atlas (jug_tk.png, original Tanki lightmap). The track belt is the strip at the bottom of the image (glTF V >= JUG_TV0).
  Faces whose UVs lie on that strip become a scrolling track material (left / right belt separately); everything else keeps
  the original atlas with its original UVs. */
 const JUG_TV0=.85,JUG_TV1=.99;
@@ -331,34 +330,27 @@ function jugSplitTracks(root,trk){const meshes=[];root.traverse(o=>{if(o.isMesh&
    const ng=new THREE.BufferGeometry();ng.setAttribute('position',new THREE.Float32BufferAttribute(pi,3));ng.setAttribute('uv',new THREE.Float32BufferAttribute(ui,2));if(ni.length)ng.setAttribute('normal',new THREE.Float32BufferAttribute(ni,3));else ng.computeVertexNormals();ng.setIndex(ii);return ng}
   const hm=o.material.clone();hm.name='hull';const par=o.parent;if(!par)continue;
   const hullM=new THREE.Mesh(sub(hullI,false),hm);hullM.castShadow=hullM.receiveShadow=true;par.add(hullM);
-  const base=IMG.jug_base;
+  const base=IMG.jug_tk;
   [[trL,1],[trR,-1]].forEach(([ids,side])=>{if(!ids.length)return;const cv=document.createElement('canvas');cv.width=512;cv.height=64;const c=cv.getContext('2d');
    if(base){const H=base.naturalHeight,W=base.naturalWidth;c.drawImage(base,0,JUG_TV0*H,W,(JUG_TV1-JUG_TV0)*H,0,0,512,64)}else{for(let x=0;x<512;x+=12){c.fillStyle=x%24?'#6a6a6a':'#3a3a3a';c.fillRect(x,0,10,64)}}
    const tmap=new THREE.CanvasTexture(cv);tmap.wrapS=THREE.RepeatWrapping;tmap.wrapT=THREE.ClampToEdgeWrapping;tmap.flipY=false;tmap.colorSpace=THREE.SRGBColorSpace;
    const tm=hm.clone();tm.map=tmap;tm.name='track';tm.userData={rate:.7,side,sign:-1,trk:1};const m=new THREE.Mesh(sub(ids,true),tm);m.castShadow=m.receiveShadow=true;par.add(m);trk.push({map:tmap,side,sign:-1,rate:.7})});
   par.remove(o)}}
-/* paint masks generated from the ORIGINAL atlas: green armour plates take paint; grey/dark metal, the track strip and
- (Terminator) barrels / breech / rear mechanics keep their own texture. L = light map (luminance), D = kept parts (alpha). */
-const MASK_KEEP={jug:[[0,JUG_TV0-.01,1,1]],term20:[[.425,.755,1,.955],[.33,.745,.44,.84],[.45,.255,.665,.515],[.86,0,1,.315],[.035,.025,.155,.275],[.03,.39,.18,.67]]},
- MASK_METAL={term20:[[.425,.755,1,.955],[.33,.745,.44,.84]]};/* Terminator barrels are bare gun-metal (desaturated), painted or not */
-const MASK_BASE={},MASK_INV={jug:true},MASK_GREY={jug:true,term20:true};let GREY_REF=null;/* jug green armour recoloured to grey (unpainted + painted) *//* Juggernaut: paint goes on the grey metal plates, green armour keeps the original texture (tracks never painted) */
-function buildMask(key,img){if(!img||!img.naturalWidth)return;const W=img.naturalWidth,H=img.naturalHeight,cv=document.createElement('canvas');cv.width=W;cv.height=H;const c=cv.getContext('2d');c.drawImage(img,0,0);
- const src=c.getImageData(0,0,W,H),d=src.data,Ld=c.createImageData(W,H),Dd=c.createImageData(W,H),Bd=c.createImageData(W,H),l=Ld.data,dd=Dd.data,bd=Bd.data,inR=(R,x,y)=>R&&R.some(r=>x>=r[0]&&x<=r[2]&&y>=r[1]&&y<=r[3]);
- const m=new Float32Array(W*H);let sum=0,n=0;
- for(let y=0;y<H;y++)for(let x=0;x<W;x++){const i=(y*W+x)*4,r=d[i],g=d[i+1],b=d[i+2],u=x/W,v=y/H;let k=Math.max(0,Math.min(1,(g-Math.max(r,b)-5)/16));if(MASK_INV[key])k=1-k;if(inR(MASK_KEEP[key],u,v))k=0;m[y*W+x]=k;const lu=.3*r+.59*g+.11*b;if(k>.5){sum+=lu;n++}}
+/* Tanki way (HTML5 client): one lightmap.webp per model. RGB = baked light + detail colour, A = details mask.
+ Painted colour = paint x lightmap x 2 where A = 0; where A = 1 (tracks, barrels, mechanics, vents) the lightmap RGB itself is the colour.
+ L = lightmap (normalised so the painted armour has the same mean light as the other hulls), D = details layer (RGB, alpha = mask).
+ Unpainted = the neutral grey base paint 'p_tk0' through the same pipeline. */
+function tankiLayers(key,img,am){if(!img||!img.naturalWidth||!am||!am.naturalWidth)return;const W=img.naturalWidth,H=img.naturalHeight,cv=document.createElement('canvas');cv.width=W;cv.height=H;const c=cv.getContext('2d');c.drawImage(am,0,0,W,H);const A=c.getImageData(0,0,W,H).data;c.drawImage(img,0,0);
+ const src=c.getImageData(0,0,W,H),d=src.data;for(let i=0;i<d.length;i+=4)d[i+3]=A[i];const Ld=c.createImageData(W,H),Dd=c.createImageData(W,H),l=Ld.data,dd=Dd.data;let sum=0,n=0;
+ for(let i=0;i<d.length;i+=4)if(d[i+3]<128){sum+=.3*d[i]+.59*d[i+1]+.11*d[i+2];n++}
  const kL=n?(.36*255)/(sum/n):1;
- /* MASK_GREY: green armour regions are recoloured to the average grey-plate colour, scaled by their own luminance (shading/detail kept) */
- let G=null;if(MASK_GREY[key]){let gr=0,gg=0,gb=0,gn=0,gl=0,gc=0;for(let y=0;y<H;y++)for(let x=0;x<W;x++){if(inR(MASK_KEEP[key],x/W,y/H))continue;const i=(y*W+x)*4,r=d[i],g=d[i+1],b=d[i+2],w=Math.max(0,Math.min(1,(g-Math.max(r,b))/10)),lu=.3*r+.59*g+.11*b;
-  if(w<.02&&lu>40){gr+=r;gg+=g;gb+=b;gn++}else if(w>.02){gl+=lu*w;gc+=w}}
-  if(gn&&key==='jug')GREY_REF={r:gr/gn,g:gg/gn,b:gb/gn};const R=key==='jug'?(gn?{r:gr/gn,g:gg/gn,b:gb/gn}:null):GREY_REF;/* one grey tone for hull and gun */
-  if(R&&gc){const ml=gl/gc;G={r:R.r/ml,g:R.g/ml,b:R.b/ml}}}/* armour average light -> 0.36 (x2 by the paint 'lighter' pass ≈ 0.72) like the other hulls */
- for(let y=0;y<H;y++)for(let x=0;x<W;x++){const j=y*W+x,i=j*4,r=d[i],g=d[i+1],b=d[i+2],lu=.3*r+.59*g+.11*b,met=inR(MASK_METAL[key],x/W,y/H);
-  const L=Math.min(255,lu*kL);l[i]=l[i+1]=l[i+2]=L;l[i+3]=255;
-  const gm=met?Math.min(255,lu*1.05):0;bd[i]=met?gm*.98:r;bd[i+1]=met?gm:g;bd[i+2]=met?gm*1.04:b;bd[i+3]=255;
-  if(G&&!(key==='jug'&&inR(MASK_KEEP[key],x/W,y/H))){/* jug: never the track strip; term20: every green pixel */const w=Math.max(0,Math.min(1,(g-Math.max(r,b))/10));if(w>0){bd[i]=r+(Math.min(255,lu*G.r)-r)*w;bd[i+1]=g+(Math.min(255,lu*G.g)-g)*w;bd[i+2]=b+(Math.min(255,lu*G.b)-b)*w}}
-  dd[i]=bd[i];dd[i+1]=bd[i+1];dd[i+2]=bd[i+2];dd[i+3]=Math.round(255*(1-m[j]))}
+ for(let i=0;i<d.length;i+=4){for(let k=0;k<3;k++){l[i+k]=Math.min(255,d[i+k]*kL);dd[i+k]=Math.min(255,d[i+k]*TK_DET)}l[i+3]=255;dd[i+3]=d[i+3]}
  const mk=D=>{const q=document.createElement('canvas');q.width=W;q.height=H;q.getContext('2d').putImageData(D,0,0);return q};
- IMG[key+'_l']=mk(Ld);IMG[key+'_d']=mk(Dd);MASK_BASE[key]=mk(Bd)}
+ IMG[key+'_l']=mk(Ld);IMG[key+'_d']=mk(Dd);
+ if(!IMG.p_tk0){const q=document.createElement('canvas');q.width=q.height=128;const x=q.getContext('2d');x.fillStyle='#7c7e7a';x.fillRect(0,0,128,128);
+  for(let k=0;k<900;k++){const v=128+((Math.random()*28)|0)-14;x.fillStyle=`rgba(${v},${v},${v},.10)`;x.fillRect(Math.random()*128,Math.random()*128,2+Math.random()*5,2+Math.random()*5)}IMG.p_tk0=q}}
+const TK_DET=1.25;/* details are shown as-is in Tanki; slight lift because our tone multiplier darkens painted hulls */
+const TK_BASE='p_tk0';
 /* tone normalisation: XT and 2.0 atlases are lighter / greyer than LG, so every skin is brought to the same
  brightness (material colour multiplier, painted or not) and saturation (unpainted atlas re-saturated once, cached) */
 const TONE={hornet:{k:1,p:1,s:1},wasp:{k:1,p:1,s:1},turret:{k:1,p:1,s:1},hornet_xt:{k:.6,p:.68,s:1.8},wasp_xt:{k:.66,p:.77,s:1.7},flash:{k:.62,p:.72,s:1.8},hornet_20:{k:.38,p:.6,s:1.9},wasp_20:{k:.46,p:.76,s:2.1},rail20:{k:.42,p:.66,s:1.9},jug:{k:.56,p:.68,s:1.4},term20:{k:.62,p:.72,s:1.3}};/* k = unpainted, p = painted colour multiplier, s = unpainted saturation */
@@ -377,13 +369,13 @@ function makeModelTank(type,paint,skin,rz){const sfx=skin==='xt'?'_xt':skin==='2
   const ms=Array.isArray(o.material)?o.material:[o.material];
   ms.forEach(m=>{const e=m.userData||{};if(isTrackMat(m)&&m.map){m.map=m.map.clone();m.map.wrapS=m.map.wrapT=THREE.RepeatWrapping;m.map.needsUpdate=true;trk.push({map:m.map,side:e.side||1,sign:e.sign||-1,rate:e.rate||.5})}});
   o.castShadow=o.receiveShadow=true});
- if(hk==='jug')jugSplitTracks(root,trk);if(hk==='jug'&&!paint&&MASK_BASE.jug)applyMap(root,baseTex('jug'));
- applyPaint(root,hk,paint);applyTone(root,hk,!!paint);const hb0=new THREE.Box3().setFromObject(root),sz=hb0.getSize(new THREE.Vector3()),sc=def.len/Math.max(.01,sz.z);
+ if(hk==='jug')jugSplitTracks(root,trk);
+ {const tk=hk==='jug'&&IMG.jug_l;applyPaint(root,hk,paint||(tk?TK_BASE:null));applyTone(root,hk,!!paint||!!tk)}const hb0=new THREE.Box3().setFromObject(root),sz=hb0.getSize(new THREE.Vector3()),sc=def.len/Math.max(.01,sz.z);
  root.scale.setScalar(sc);root.position.set(0,0,0);g.add(root);
  const tur=new THREE.Group();tur.position.set(mp.x*sc,mp.y*sc,mp.z*sc);g.add(tur);
  const t=ts.clone(true),mz=rz?t.getObjectByName('muzzle_l'):t.getObjectByName('muzzle'),mzr=rz?t.getObjectByName('muzzle_r'):null;
  t.traverse(o=>{if(!o.isMesh)return;o.material=Array.isArray(o.material)?o.material.map(m=>m.clone()):o.material.clone();o.castShadow=o.receiveShadow=true});
- if(rz&&!paint&&MASK_BASE.term20)applyMap(t,baseTex('term20'));{const tk=rz?'term20':skin==='xt'?'flash':skin==='20'?'rail20':'turret';applyPaint(t,tk,paint);applyTone(t,tk,!!paint)}t.scale.setScalar(sc);tur.add(t);
+ {const tk=rz?'term20':skin==='xt'?'flash':skin==='20'?'rail20':'turret',tb=rz&&IMG.term20_l;applyPaint(t,tk,paint||(tb?TK_BASE:null));applyTone(t,tk,!!paint||!!tb)}t.scale.setScalar(sc);tur.add(t);
  g.updateMatrixWorld(true);{const bb=new THREE.Box3();g.traverse(o=>{if(o.isMesh&&o.geometry)bb.expandByObject(o)});const pad=.02,lift=-bb.min.y+pad;root.position.y+=lift;tur.position.y+=lift;g.updateMatrixWorld(true);const bb2=new THREE.Box3();g.traverse(o=>{if(o.isMesh&&o.geometry)bb2.expandByObject(o)});g.hw=Math.max(1.35,(bb2.max.x-bb2.min.x)*.5);g.hl=Math.max(1.8,(bb2.max.z-bb2.min.z)*.5);g.yPad=pad;
   /* footprint of the HULL only (no turret/barrel): tracks are what touches the ground and the boxes */
   const hb=new THREE.Box3();root.traverse(o=>{if(o.isMesh&&o.geometry)hb.expandByObject(o)});g.foot={hw:(hb.max.x-hb.min.x)*.5,hl:(hb.max.z-hb.min.z)*.5,cx:(hb.max.x+hb.min.x)*.5,cz:(hb.max.z+hb.min.z)*.5,y0:hb.min.y};
@@ -403,6 +395,7 @@ function makeModelTank(type,paint,skin,rz){const sfx=skin==='xt'?'_xt':skin==='2
   if(rz){const l=ms.findIndex(o=>/_l$/i.test(o.name)),r=ms.findIndex(o=>/_r$/i.test(o.name));if(l>=0&&r>=0)tips=[tips[l],tips[r]]}
   g.muz={px:tur.position.x,pz:tur.position.z,tip:tips[0].z,y:tur.position.y+tips[0].y,tips};if(rz&&tips.length>=2)g.muz.bar=[tips[0].x,tips[1].x];else if(Math.abs(tips[0].x)>.01)g.muz.bar=[tips[0].x,tips[0].x]}
  g.hb=hbBuild(root,null,3).concat(hbBuild(t,tur.position,5));
+ {const mo=[];t.traverse(o=>{if(!o.isMesh&&/^msl_/.test(o.name||''))mo.push(o)});mo.sort((a,b)=>a.name<b.name?-1:1);g.mslO=mo;g.lzO=t.getObjectByName('laser')||null}/* Terminator launcher tubes + laser emitter from the original model */
  g.rec=t;g.tur=tur;g.hull=root;g.trk=trk;g.trkSc=sc;g.trkX=1.05*sc;scene.add(g);return g}
 let glowTex=null;
 function addGlow(g){if(!g||!g.tur)return;if(!glowTex){const c=document.createElement('canvas');c.width=c.height=64;const x=c.getContext('2d'),gr=x.createRadialGradient(32,32,0,32,32,32);gr.addColorStop(0,'rgba(255,255,255,1)');gr.addColorStop(.3,'rgba(160,240,255,.7)');gr.addColorStop(1,'rgba(0,150,255,0)');x.fillStyle=gr;x.fillRect(0,0,64,64);glowTex=new THREE.CanvasTexture(c)}
@@ -546,7 +539,7 @@ function hitCheck(s,tg){if(s.tg!==undefined)return s.tg===tg;/* remote shot mess
 function damage(t,d){if(t.inv>performance.now())return;t.hp=Math.max(0,t.hp-d)}
 /* ---- RAZEB ALT ATTACK: laser designator (key E / right-click / phone button) -> after LOCK_T on one target, salvo of MSL_N homing missiles ---- */
 const LOCK_T=3000,ALT_CD=10000,MSL_N=6,MSL_DMG=DMG*2/MSL_N/*total = 2 railgun shots*/,MSL_SPD=27,MSL_TURN=7,MSL_LIFE=9000,MSL_CLR=1.8;/* missiles keep MSL_CLR above hills/blocks/walls on the way, dive only near the target */
-const LOCK_HOLD=1500;/* laser off the target: lock progress freezes for exactly 1.5 s, then resets */
+const _lzV=new THREE.Vector3();const LOCK_HOLD=1500;/* laser off the target: lock progress freezes for exactly 1.5 s, then resets */
 const ALT={on:false,tgt:null,t0:0,acc:0,offT:0,lt:0,cd:0,lzT:0,lzSent:0,line:null,oline:null,ring:null,oLz:0};
 const mslL=[],fxL=[],mslGeo={body:null,nose:null,puff:null,sph:null};
 function altInitGeo(){if(mslGeo.body)return;const b=new THREE.CylinderGeometry(.07,.07,.55,6);b.rotateX(Math.PI/2);const n=new THREE.ConeGeometry(.07,.2,6);n.rotateX(Math.PI/2);n.translate(0,0,.37);mslGeo.body=b;mslGeo.nose=n;mslGeo.puff=new THREE.SphereGeometry(.14,6,6);mslGeo.sph=new THREE.SphereGeometry(1,12,10);
@@ -573,7 +566,7 @@ function altUpdate(now){const bt=$('altb'),ok=(SEC.rz||JG)&&mode=='play';altUi.b
  if(tg){if(tg!==ALT.tgt){ALT.tgt=tg;ALT.acc=0}else if(!ALT.offT)ALT.acc+=ldt;ALT.offT=0}/* same target: continue from the frozen progress */
  else if(ALT.tgt){if(!ALT.offT)ALT.offT=now;else if(now-ALT.offT>=LOCK_HOLD){ALT.tgt=null;ALT.acc=0;ALT.offT=0}}
  const frz=!tg&&ALT.tgt&&ALT.offT?ALT.tgt:null;
- const len=tg?bp:(SEC.pen?wd:terrLen(ox,oz,oy,dx,dz,vis)),ty=tg?1+(tg.y||0):oy,ex=ox+dx*len,ez=oz+dz*len;altSeg(altLine('line',0xff1010),ox,oy,oz,ex,ty,ez,.035+.012*Math.sin(now/40));
+ const len=tg?bp:(SEC.pen?wd:terrLen(ox,oz,oy,dx,dz,vis)),ty=tg?1+(tg.y||0):oy,ex=ox+dx*len,ez=oz+dz*len;const lz=me.mesh&&me.mesh.lzO?(me.mesh.updateMatrixWorld(true),me.mesh.lzO.getWorldPosition(_lzV)):null;altSeg(altLine('line',0xff1010),lz?lz.x:ox,lz?lz.y:oy,lz?lz.z:oz,ex,ty,ez,.035+.012*Math.sin(now/40));
  const pr=(tg||frz)?Math.min(1,ALT.acc/LOCK_T):0,rt=tg||frz;
  const rg=altRing();if(rt){rg.visible=!frz||Math.floor(now/150)%2==0;rg.position.set(rt.x,1.2+(rt.y||0),rt.z);rg.lookAt(cam.position);const sc=2.4-1.3*pr;rg.scale.set(sc,sc,sc);if(!frz)rg.rotation.z=now/300;rg.material.color.setHex(frz?0xff9020:pr>=1?0xffffff:0xff2020)}else rg.visible=false;
  altUi.d.style.display='block';$('lockt').textContent=tg?'ЗАХВАТ '+(pr*LOCK_T/1000).toFixed(1)+' / '+LOCK_T/1000+' с':frz?'ЗАХВАТ ЗАМОРОЖЕН '+(pr*LOCK_T/1000).toFixed(1)+' с · сброс через '+Math.max(0,(LOCK_HOLD-(now-ALT.offT))/1000).toFixed(1)+' с':'ЦЕЛЬ НЕ ЗАХВАЧЕНА';$('lockb').style.width=pr*100+'%';
@@ -585,7 +578,8 @@ function altFire(tg,now){const[ox,oy,oz,dx,dz]=muzzlePos(me,2),seed=Math.random(
 function mslSalvo(ox,oy,oz,dx,dz,seed,tg,mode2,sh,now){altInitGeo();let s=seed*9301+7;const rnd=()=>(s=(s*9301+49297)%233280)/233280;
  for(let i=0;i<MSL_N;i++){const g=new THREE.Group();g.add(new THREE.Mesh(mslGeo.body,new THREE.MeshBasicMaterial({color:0xcfcfcf})));g.add(new THREE.Mesh(mslGeo.nose,new THREE.MeshBasicMaterial({color:0xff3a1a})));g.visible=false;scene.add(g);
   const a=(i/MSL_N-.5)*1.5+(rnd()-.5)*.3;const vx=Math.cos(a)*dz*-1*.0+dx*5+Math.sin(a)*-dz*7+(rnd()-.5)*2,vz=dz*5+Math.sin(a)*dx*7+(rnd()-.5)*2;
-  mslL.push({g,tg,mode:mode2,sh,t0:now+i*110,t:0,p:new THREE.Vector3(ox,oy+.3,oz),v:new THREE.Vector3(vx,9+rnd()*4,vz),off:[(rnd()-.5)*1.2,(rnd()-.5)*.6,(rnd()-.5)*1.2],pf:0,lx:tg.x,lz:tg.z})}}
+  const lo=sh&&sh.mesh&&sh.mesh.mslO&&sh.mesh.mslO.length?sh.mesh.mslO[i%sh.mesh.mslO.length]:null;if(lo)sh.mesh.updateMatrixWorld(true);
+  mslL.push({g,tg,mode:mode2,sh,t0:now+i*110,t:0,p:lo?lo.getWorldPosition(new THREE.Vector3()):new THREE.Vector3(ox,oy+.3,oz),v:new THREE.Vector3(vx,9+rnd()*4,vz),off:[(rnd()-.5)*1.2,(rnd()-.5)*.6,(rnd()-.5)*1.2],pf:0,lx:tg.x,lz:tg.z})}}
 function fxAdd(m,life,grow,col,op){m.material.color.setHex(col);m.material.opacity=op;scene.add(m);fxL.push({m,t:0,life,grow,op})}
 function mslExplode(p){altInitGeo();const m=new THREE.Mesh(mslGeo.sph,new THREE.MeshBasicMaterial({transparent:true,depthWrite:false}));m.position.copy(p);fxAdd(m,.4,2.4,0xff9020,.9);
  const m2=new THREE.Mesh(mslGeo.sph,new THREE.MeshBasicMaterial({transparent:true,depthWrite:false}));m2.position.copy(p);fxAdd(m2,.7,3.4,0x555555,.5)}
