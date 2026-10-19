@@ -40,13 +40,25 @@ button{font-size:20px;padding:12px 28px;border-radius:10px;border:0;background:#
 .tg{display:flex;justify-content:space-between;align-items:center;gap:14px;margin:8px 0;font-size:16px}
 .tg button{margin:0;min-width:56px;background:#555;color:#fff}.tg button.on{background:#ffb300;color:#000}
 #secerr{color:#f55;font-size:13px;min-height:16px}
-#shopm{position:fixed;inset:0;z-index:40;background:rgba(0,0,0,.8);display:none;align-items:center;justify-content:center}
-#shopm .bx{background:#1c1c1c;border:2px solid #ffb300;border-radius:12px;padding:10px 14px;max-width:94vw;max-height:94dvh;overflow-y:auto;box-sizing:border-box;text-align:center}
-#shopm h3{margin:0 0 4px;font-size:18px}.shgrid{display:flex;flex-wrap:wrap;justify-content:center;gap:6px;margin:4px 0 8px}
-.shi{display:flex;flex-direction:column;align-items:center;padding:6px;border:2px solid #555;border-radius:10px;background:#222;width:88px;font-size:13px;box-sizing:border-box}.shi.sel{border-color:#ffb300;background:#332a00}
-.shi img{width:76px;height:48px;object-fit:contain}.shi .sk{font-size:20px;font-weight:bold;height:48px;line-height:48px}
-.shi button{margin:4px 0 0;padding:4px 8px;font-size:13px;width:100%}.shi button.no{background:#555;color:#ccc}.shi button.eq{background:#2e7d32;color:#fff}
-#crb{margin:4px 0 2px;padding:6px 14px;font-size:15px;background:#1e88e5;color:#fff}#sherr{color:#f55;font-size:13px;min-height:16px}
+#shopm{position:fixed;inset:0;z-index:40;background:rgba(0,0,0,.88);display:none;align-items:center;justify-content:center;padding:8px;box-sizing:border-box}
+#shopm .bx{background:#141a14;border:2px solid #3d8c3d;border-radius:10px;padding:10px;width:min(920px,96vw);max-height:96dvh;overflow:auto;box-sizing:border-box;color:#d8f0d8}
+#shopm .gtop{display:flex;gap:10px;flex-wrap:wrap;justify-content:center}
+#shopm .gprev{flex:1 1 280px;min-width:240px;background:#0c100c;border:2px solid #2f6b2f;border-radius:8px;padding:6px;text-align:center}
+#shopm .gprev h3,#shopm .ginfo h3{margin:0 0 6px;font-size:15px;color:#7dff7d;letter-spacing:1px}
+#gcv{width:100%;height:220px;border-radius:6px;background:#1a2218;display:block}
+#shopm .ginfo{flex:1 1 240px;min-width:200px;background:#0c100c;border:2px solid #2f6b2f;border-radius:8px;padding:8px 10px;text-align:left;font-size:13px;line-height:1.35}
+#shopm .ginfo b{color:#b6ffb6}#ginf{min-height:110px;color:#9cbb9c}
+#shopm .gtabs{display:flex;gap:6px;justify-content:center;margin:10px 0 6px;flex-wrap:wrap}
+#shopm .gtabs button{margin:0;padding:7px 14px;font-size:14px;background:#1e331e;color:#cfe;border:1px solid #3d8c3d;border-radius:6px}
+#shopm .gtabs button.on{background:#3d8c3d;color:#041004;font-weight:bold}
+.shgrid{display:flex;flex-wrap:wrap;justify-content:center;gap:8px;margin:4px 0 8px;max-height:28vh;overflow-y:auto}
+.shi{display:flex;flex-direction:column;align-items:center;padding:6px;border:2px solid #2a4a2a;border-radius:8px;background:#182418;width:100px;font-size:12px;box-sizing:border-box;cursor:pointer}.shi.sel{border-color:#6dff6d;box-shadow:0 0 0 1px #6dff6d}
+.shi img{width:84px;height:52px;object-fit:contain}.shi .sk{font-size:22px;font-weight:bold;height:52px;line-height:52px;color:#cfc}
+.shi .nm{color:#a8d0a8;margin-top:2px}.shi .pr{color:#ffb300;margin-top:2px}
+.shi button{margin:4px 0 0;padding:4px 8px;font-size:12px;width:100%;background:#3d8c3d;color:#041004}.shi button.no{background:#333;color:#888}.shi button.eq{background:#2e7d32;color:#fff}
+#crb{margin:4px 0 2px;padding:6px 14px;font-size:15px;background:#2e7d32;color:#fff}#sherr{color:#f66;font-size:13px;min-height:16px;text-align:center}
+#shopm .gfoot{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-top:6px;flex-wrap:wrap}
+#shopm .gfoot .bal{font-size:16px;color:#ffb300}
 #load{position:fixed;inset:0;z-index:50;display:flex;flex-direction:column;align-items:center;justify-content:center;background:#0d1520;color:#fff;text-align:center}
 #load h1{margin:0 0 18px;font-size:28px;letter-spacing:3px;color:#ffb300}
 #load .bar{position:relative;width:min(320px,70vw);height:14px;background:#1a2430;border:1px solid #ffb300;border-radius:8px;overflow:hidden;top:auto}
@@ -77,9 +89,19 @@ button{font-size:20px;padding:12px 28px;border-radius:10px;border:0;background:#
 <div id="secm"><div class="bx"><div id="secp"><h3>Пароль</h3><input id="secpw" type="password" inputmode="numeric" autocomplete="off"><div id="secerr"></div><div><button id="secok">OK</button><button id="secx1" style="background:#555;color:#fff">Отмена</button></div></div>
 <div id="secs" style="display:none"><h3>Секретные настройки</h3><div class="tg"><span>Aim assist</span><button id="tgaim"></button></div><div class="tg"><span>Auto fire</span><button id="tgfire"></button></div><div class="tg"><span>Прострел стен</span><button id="tgpen"></button></div><div class="tg"><span>RAZEB (Terminator)</span><button id="tgrz"></button></div><div class="tg"><span>Джаггернаут (HP ×20)</span><button id="tgjug"></button></div><div class="tg"><span>Кристаллы: <b id="secv">0</b> 💎</span><button id="tgcr" class="on">+1000 💎</button></div><div style="font-size:12px;opacity:.7;margin:4px 0">Всё действует сразу, кроме Джаггернаута: он включается со следующего боя</div><button id="secx2" style="background:#555;color:#fff">Закрыть</button></div></div></div>
 <div id="load"><div class="sp"></div><h1>TANKS</h1><div class="bar"><i id="loadi"></i></div><p id="loadt">Загрузка… 0%</p></div>
-<div id="shopm"><div class="bx"><h3>Магазин · 💎 <span id="shcr">0</span></h3><div style="font-size:12px;opacity:.7">За каждую победу в дуэли (с ботом или игроком): +100 💎</div><div class="lbl">Скины</div><div id="shsk" class="shgrid"></div><div class="lbl">Краски</div><div id="shpt" class="shgrid"></div><div id="sherr"></div><button id="shx" style="background:#555;color:#fff;margin-top:4px">Закрыть</button></div></div>
+<div id="shopm"><div class="bx">
+<div class="gtop">
+ <div class="gprev"><h3>МОЙ ТАНК</h3><canvas id="gcv" width="640" height="360"></canvas></div>
+ <div class="ginfo"><h3>ИНФОРМАЦИЯ</h3><div id="ginf">Выбери предмет в гараже</div>
+  <div style="margin-top:10px;font-size:12px;opacity:.75">Победа в дуэли: +100 💎 · JG: +500 💎</div></div>
+</div>
+<div class="gtabs"><button type="button" id="gtab_hull" class="on">Корпус</button><button type="button" id="gtab_skn">Скин</button><button type="button" id="gtab_pt">Краска</button></div>
+<div id="ggrid" class="shgrid"></div>
+<div id="sherr"></div>
+<div class="gfoot"><span class="bal">💎 <span id="shcr">0</span></span><button id="shx" style="background:#555;color:#fff;margin:0">Закрыть</button></div>
+</div></div>
 <div id="menu" style="display:none"><button id="secb" title="Settings">&#9881;</button><div id="mleft"><h2>TANKS 1v1</h2><canvas id="pv" width="480" height="260"></canvas></div><div id="mright">
-<button id="crb">💎 <span id="crv">0</span> · Магазин: скины и краски</button>
+<button id="crb">💎 <span id="crv">0</span> · Гараж</button>
 <div class="lbl">Танк (Railgun):</div>
 <div class="skrow" id="tkrow"><div class="card sel" id="c_hornet" title="Hornet Railgun — HP 150, средний"><b>ХР</b></div><div class="card" id="c_wasp" title="Wasp Railgun — HP 100, быстрый"><b>ВР</b></div></div>
 <div class="lbl">Скин:</div><div class="skrow"><button id="sk_lg" class="card sel sk">LG</button><button id="sk_xt" class="card sk">XT</button><button id="sk_20" class="card sk">2.0</button></div>
@@ -156,6 +178,8 @@ function terrHA(x,z){let h=0;for(const[cx,cz,hw,hd,hh,r]of JG_HILLS){const d=Mat
 // distance along the straight 3D segment a->b where it first dips into the terrain, or -1 if it is clear
 function terrBlock(ax,az,ay,bx,bz,by){if(!JG)return -1;const L=Math.hypot(bx-ax,bz-az),n=Math.ceil(L/1.2);for(let i=1;i<n;i++){const f=i/n;if(terrH(ax+(bx-ax)*f,az+(bz-az)*f)>ay+(by-ay)*f+.35)return L*f}return -1}
 function terrLen(ox,oz,oy,dx,dz,len){const b=terrBlock(ox,oz,oy,ox+dx*len,oz+dz*len,oy);return b<0?len:b}
+function rideH(t){if(!JG)return 0;const s=Math.sin(t.a||0),c=Math.cos(t.a||0),w=(t.mesh&&t.mesh.hw)||1.15,l=(t.mesh&&t.mesh.hl)||1.7;let h=terrH(t.x,t.z);
+ for(const[fx,fz]of[[l,w],[l,-w],[-l,w],[-l,-w],[l,0],[-l,0],[0,w],[0,-w],[l*.5,w],[l*.5,-w],[-l*.5,w],[-l*.5,-w]]){const x=t.x+s*fx+c*fz,z=t.z+c*fx-s*fz;h=Math.max(h,terrH(x,z))}return h}
 let jgMap=null;const JG_BOX=[];
 function jgBuild(){if(jgMap)return;JG_HM=new Float32Array(HM_N*HM_N);for(let j=0;j<HM_N;j++)for(let i=0;i<HM_N;i++)JG_HM[j*HM_N+i]=terrHA(i*HM_S-JG_A,j*HM_S-JG_A);jgMap=new THREE.Group();const N=150,S=JG_A*2,g=new THREE.PlaneGeometry(S,S,N,N);g.rotateX(-Math.PI/2);
  const p=g.attributes.position,col=new Float32Array(p.count*3),c=new THREE.Color(),lo=new THREE.Color(0x6a7b5a),hi=new THREE.Color(0xa38d5e);
@@ -246,13 +270,14 @@ function makeModelTank(type,paint,skin,rz){const sfx=skin==='xt'?'_xt':skin==='2
  /* unpainted jug: rebuild albedo from light+det (+base) so the baked jug_v1.jpg alone doesn't look mixed-up vs the paint pipeline */
  if(hk==='jug'&&!paint&&IMG.jug_l&&IMG.jug_d){const cv=document.createElement('canvas');cv.width=IMG.jug_l.width;cv.height=IMG.jug_l.height;paintCompose(cv,IMG.jug_l,IMG.jug_d,IMG.jug_base||IMG.jug_l,true);const tx=new THREE.CanvasTexture(cv);tx.flipY=false;tx.colorSpace=THREE.SRGBColorSpace;
   root.traverse(o=>{if(!o.isMesh)return;const ms=Array.isArray(o.material)?o.material:[o.material];ms.forEach(m=>{if(m&&!isTrackMat(m)){m.map=tx;m.needsUpdate=true}})})}
- applyPaint(root,hk,paint);const hb=new THREE.Box3().setFromObject(root),sz=hb.getSize(new THREE.Vector3()),sc=def.len/sz.z,yoff=-hb.min.y*sc;
- root.scale.setScalar(sc);root.position.y=yoff;g.add(root);
- const tur=new THREE.Group();tur.position.set(mp.x*sc,yoff+mp.y*sc,mp.z*sc);g.add(tur);
+ applyPaint(root,hk,paint);const hb0=new THREE.Box3().setFromObject(root),sz=hb0.getSize(new THREE.Vector3()),sc=def.len/Math.max(.01,sz.z);
+ root.scale.setScalar(sc);root.position.set(0,0,0);g.add(root);
+ const tur=new THREE.Group();tur.position.set(mp.x*sc,mp.y*sc,mp.z*sc);g.add(tur);
  const t=ts.clone(true),mz=rz?t.getObjectByName('muzzle_l'):t.getObjectByName('muzzle'),mzr=rz?t.getObjectByName('muzzle_r'):null;
  t.traverse(o=>{if(!o.isMesh)return;o.material=Array.isArray(o.material)?o.material.map(m=>m.clone()):o.material.clone();o.castShadow=o.receiveShadow=true});
- applyPaint(t,rz?'term20':skin==='xt'?'flash':skin==='20'?'rail20':'turret',paint);const tb=new THREE.Box3().setFromObject(t);t.scale.setScalar(sc);tur.add(t);
- g.muz={px:tur.position.x,pz:tur.position.z,tip:tb.max.z*sc,y:tur.position.y+(mz?mz.position.y:.45)*sc};if(rz&&mz&&mzr){g.muz.tip=mz.position.z*sc;g.muz.bar=[mz.position.x*sc,mzr.position.x*sc]}
+ applyPaint(t,rz?'term20':skin==='xt'?'flash':skin==='20'?'rail20':'turret',paint);t.scale.setScalar(sc);tur.add(t);
+ g.updateMatrixWorld(true);{const bb=new THREE.Box3();g.traverse(o=>{if(o.isMesh&&o.geometry)bb.expandByObject(o)});const pad=hk==='jug'?.18:.08,lift=-bb.min.y+pad;root.position.y+=lift;tur.position.y+=lift;g.updateMatrixWorld(true);const bb2=new THREE.Box3();g.traverse(o=>{if(o.isMesh&&o.geometry)bb2.expandByObject(o)});g.hw=Math.max(1.35,(bb2.max.x-bb2.min.x)*.5);g.hl=Math.max(1.8,(bb2.max.z-bb2.min.z)*.5);g.yPad=pad}
+ g.muz={px:tur.position.x,pz:tur.position.z,tip:(mz?mz.position.z:(new THREE.Box3().setFromObject(t).max.z))*sc,y:tur.position.y+(mz?mz.position.y*sc:.45*sc)};if(rz&&mz&&mzr){g.muz.tip=mz.position.z*sc;g.muz.bar=[mz.position.x*sc,mzr.position.x*sc]}
  g.rec=t;g.tur=tur;g.hull=root;g.trk=trk;g.trkSc=sc;g.trkX=1.05*sc;scene.add(g);return g}
 let glowTex=null;
 function addGlow(g){if(!g||!g.tur)return;if(!glowTex){const c=document.createElement('canvas');c.width=c.height=64;const x=c.getContext('2d'),gr=x.createRadialGradient(32,32,0,32,32,32);gr.addColorStop(0,'rgba(255,255,255,1)');gr.addColorStop(.3,'rgba(160,240,255,.7)');gr.addColorStop(1,'rgba(0,150,255,0)');x.fillStyle=gr;x.fillRect(0,0,64,64);glowTex=new THREE.CanvasTexture(c)}
@@ -299,7 +324,7 @@ function wallDist(ox,oz,dx,dz){let best=RANGE;for(const b of boxes){const t=rayB
 // shooter fires: returns hit?
 let shakeT=0,shakeA=.14;
 function hop(t,now){const f=(now-t.flashT)/420;return(f>=0&&f<1)?Math.sin(Math.PI*Math.pow(f,.7)):0}
-const EU=new THREE.Euler(),YAX=new THREE.Vector3(0,1,0),TAX=new THREE.Vector3(),TQ=new THREE.Quaternion();
+const EU=new THREE.Euler(),YAX=new THREE.Vector3(0,1,0),TAX=new THREE.Vector3(),TQ=new THREE.Quaternion(),_bb=new THREE.Box3();
 function hitFx(t,dx,dz,rz){if(rz){t.shkT=performance.now();if(t===me){shakeT=t.shkT;shakeA=.5}}t.hitRz=!!rz;t.hitT=performance.now();t.hitDx=dx;t.hitDz=dz}
 function hitRec(t,now){if(!t.hitT)return 0;const f=(now-t.hitT)/650;if(!(f>=0&&f<1))return 0;return f<.15?f/.15:Math.pow(1-(f-.15)/.85,2)}
 function recoil(t,now){const f=(now-t.flashT)/420;if(!(f>=0&&f<1))return 0;return f<.12?f/.12:Math.pow(1-(f-.12)/.88,2)}
@@ -328,7 +353,7 @@ function drive(t,ix,iy,dt,T){const cl=(v,m)=>Math.max(-m,Math.min(m,v));
  t.v+=cl(tv-t.v,rate*dt);
  const tw=-ix*T.turn*(iy<-.1?-1:1);t.w+=cl(tw-t.w,T.tacc*dt);t.a+=t.w*dt;
  const ox=t.x,oz=t.z;let mv=t.v*dt;if(JG){const sx=Math.sin(t.a),sz=Math.cos(t.a),sl=(terrH(t.x+sx,t.z+sz)-terrH(t.x-sx,t.z-sz))/2*Math.sign(mv);mv*=Math.max(.45,Math.min(1.25,1-.7*sl))}
- t.x+=Math.sin(t.a)*mv;t.z+=Math.cos(t.a)*mv;resolve(t);t.y=terrH(t.x,t.z);
+ t.x+=Math.sin(t.a)*mv;t.z+=Math.cos(t.a)*mv;resolve(t);t.y=rideH(t);
  if(Math.abs(mv)>1e-4&&Math.hypot(t.x-ox,t.z-oz)<Math.abs(mv)*.6)t.v*=.5}
 function hitCheck(s,tg){const p=rayCircle(s.ox,s.oz,s.dx,s.dz,tg.x,tg.z,R);return p!==null&&p<=s.len}
 function damage(t,d){if(t.inv>performance.now())return;t.hp=Math.max(0,t.hp-d)}
@@ -425,19 +450,54 @@ function shopSave(){try{localStorage.setItem('tdshop',JSON.stringify(SHOP))}catc
 function crAdd(n){SHOP.cr=Math.max(0,SHOP.cr+n);shopSave()}
 function shopBuy(key,price){if(SHOP.own.includes(key))return true;if(SHOP.cr<price)return false;SHOP.cr-=price;SHOP.own.push(key);shopSave();return true}
 let lastOwnedPaint='';
-function crUi(){[['crv'],['shcr'],['secv']].forEach(([id])=>{const e=$(id);if(e)e.textContent=SHOP.cr});SKN.forEach(k=>{const b=$('sk_'+k);if(b)b.textContent=(ownsSkn(k)?'':'🔒 ')+SKIN_NM[k]});if($('shopm').style.display=='flex')shopRender()}
-// locked selections are never taken into a battle: fall back to the last owned paint / LG
+function crUi(){[['crv'],['shcr'],['secv']].forEach(([id])=>{const e=$(id);if(e)e.textContent=SHOP.cr});SKN.forEach(k=>{const b=$('sk_'+k);if(b)b.textContent=(ownsSkn(k)?'':'🔒 ')+SKIN_NM[k]});if($('shopm').style.display=='flex')garageRender()}
 function fixLoadout(){if(!ownsPaint(myPaint)){myPaint=lastOwnedPaint;showPaint()}if(!ownsSkn(mySkn))setSkn('lg')}
-function shopItem(sel,owned,price,html,onUse){const d=document.createElement('div');d.className='shi'+(sel?' sel':'');d.innerHTML=html;const b=document.createElement('button');
- if(sel){b.textContent='Выбрано';b.className='eq'}else if(owned)b.textContent='Выбрать';else{b.textContent='💎 '+price;if(SHOP.cr<price)b.className='no'}
- b.onclick=()=>{$('sherr').textContent='';if(!owned&&!onUse.buy()){$('sherr').textContent='Не хватает кристаллов: нужно '+price+' 💎';return}onUse.use();shopRender()};d.appendChild(b);return d}
-function shopRender(){$('shcr').textContent=SHOP.cr;const sk=$('shsk'),pt=$('shpt');sk.innerHTML='';pt.innerHTML='';
- SKN.forEach(k=>sk.appendChild(shopItem(mySkn==k,ownsSkn(k),SKIN_PRICE[k],'<div class="sk">'+SKIN_NM[k]+'</div>',{buy:()=>shopBuy('sk:'+k,SKIN_PRICE[k]),use:()=>setSkn(k)})));
- ['',...PAINTS].forEach(p=>pt.appendChild(shopItem(myPaint==p&&ownsPaint(p),ownsPaint(p),paintPrice(p),'<img src="models/paints/i'+(p?p.slice(1):'_base')+'.webp?v=4">'+(p?'':'<span>Базовая</span>'),{buy:()=>shopBuy('pt:'+p,paintPrice(p)),use:()=>{myPaint=p;showPaint()}})))}
-function openShop(){$('sherr').textContent='';$('shopm').style.display='flex';shopRender()}
+/* ---- GARAGE (Tanki-style): 3D preview + info + item grid; same crystal buy/equip as the old shop ---- */
+let gTab='hull',gSel=null;
+const HULL_INFO={hornet:{nm:'Hornet',txt:'Средний корпус. HP 150, хорошая манёвренность. Универсальный выбор для дуэлей.'},wasp:{nm:'Wasp',txt:'Лёгкий быстрый корпус. HP 100, максимальная скорость и поворот — ударь и уйди.'}};
+const SKIN_INFO={lg:{nm:'Скин LG',txt:'Стандартный вид танка. Бесплатно.'},xt:{nm:'Скин XT',txt:'Улучшенная модель XT с отдельной башней Flash.'},'20':{nm:'Скин 2.0',txt:'Обновлённая модель 2.0 с анимируемыми гусеницами и башней Rail 2.0.'}};
+function paintInfo(p){return p?{nm:'Краска '+(p===ANIM_PAINT?'Neon Pulse':p.toUpperCase()),txt:p===ANIM_PAINT?'Анимированная неоновая краска. Меняет цвет корпуса и башни, гусеницы не затрагиваются.':'Цветная покраска корпуса и башни. Гусеницы остаются металлическими.'}:{nm:'Базовая краска',txt:'Заводской цвет без покраски. Бесплатно.'}}
+/* dedicated garage preview renderer (hangar look) */
+const gCv=$('gcv');let gR=null,gS=null,gC=null,gT=null,gOn=false,gLast=0;
+function garageInit(){if(gR||!gCv)return;gR=new THREE.WebGLRenderer({canvas:gCv,antialias:true,alpha:false});gR.setPixelRatio(Math.min(devicePixelRatio,2));gR.setSize(gCv.clientWidth||320,gCv.clientHeight||220,false);
+ gS=new THREE.Scene();gS.background=new THREE.Color(0x1a2218);gS.add(new THREE.HemisphereLight(0xe8ffe8,0x223322,1.0));const L=new THREE.DirectionalLight(0xfff0d0,1.15);L.position.set(5,8,4);gS.add(L);
+ gC=new THREE.PerspectiveCamera(32, (gCv.clientWidth||320)/(gCv.clientHeight||220),.1,50);gC.position.set(3.2,2.4,6.2);gC.lookAt(0,.7,0);
+ const floor=new THREE.Mesh(new THREE.CircleGeometry(3.2,32),new THREE.MeshLambertMaterial({color:0x2a3328}));floor.rotation.x=-Math.PI/2;floor.position.y=-.02;gS.add(floor);
+ const ring=new THREE.Mesh(new THREE.RingGeometry(2.6,2.75,48),new THREE.MeshBasicMaterial({color:0x3d8c3d,side:THREE.DoubleSide}));ring.rotation.x=-Math.PI/2;ring.position.y=.01;gS.add(ring)}
+function garagePv(){garageInit();if(!gS)return;if(gT){gS.remove(gT);if(gT.parent)gT.parent.remove(gT);gT=null}
+ try{const t=makeTank(eT(),myPaint,mySkn,SEC.rz);if(!t)return;if(t.parent)t.parent.remove(t);gT=t;gS.add(gT);gT.rotation.y=.6}catch(e){console.warn(e)}}
+function garageLoop(now){if(!gOn)return;requestAnimationFrame(garageLoop);const dt=Math.min(.05,(now-gLast)/1000);gLast=now;
+ if(gT){gT.rotation.y+=dt*.45;if(gT.tur)gT.tur.rotation.y=Math.sin(now/1400)*.25}if(gR&&gS&&gC){animTick(now,[gT]);gR.render(gS,gC)}}
+function garageInfo(){const box=$('ginf');if(!box)return;let title='',body='',price=0,owned=true,action='';
+ if(gTab==='hull'){const h=HULL_INFO[myType]||HULL_INFO.hornet;title=h.nm;body=h.txt;owned=true;action='Выбрано'}
+ else if(gTab==='skn'){const k=gSel||mySkn,inf=SKIN_INFO[k];title=inf.nm;body=inf.txt;price=SKIN_PRICE[k];owned=ownsSkn(k);action=mySkn===k?'Выбрано':owned?'Выбрать':'Купить'}
+ else{const pt=gSel!==null&&gSel!==undefined?gSel:myPaint,inf=paintInfo(pt);title=inf.nm;body=inf.txt;price=paintPrice(pt);owned=ownsPaint(pt);action=myPaint===pt&&owned?'Выбрано':owned?'Выбрать':'Купить'}
+ box.innerHTML=`<div style="font-size:16px;color:#b6ffb6;margin-bottom:6px"><b>${title}</b></div><div>${body}</div>`+(price?`<div style="margin-top:8px;color:#ffb300">Цена: 💎 ${price}</div>`:'')+`<div style="margin-top:6px;opacity:.8">${owned?'В наличии':'Не куплено'} · ${action}</div>`}
+function garageCard(sel,owned,price,html,onPick,onBuy){const d=document.createElement('div');d.className='shi'+(sel?' sel':'');d.innerHTML=html;d.onclick=()=>{onPick();garageRender()};
+ const b=document.createElement('button');if(sel){b.textContent='Выбрано';b.className='eq'}else if(owned)b.textContent='Выбрать';else{b.textContent='💎 '+price;if(SHOP.cr<price)b.className='no'}
+ b.onclick=e=>{e.stopPropagation();$('sherr').textContent='';if(!owned){if(!onBuy()){$('sherr').textContent='Не хватает кристаллов: нужно '+price+' 💎';return}}else onPick();garageRender()};d.appendChild(b);return d}
+function garageRender(){garageInit();$('shcr').textContent=SHOP.cr;['hull','skn','pt'].forEach(t=>$('gtab_'+t).classList.toggle('on',gTab===t));
+ const grid=$('ggrid');grid.innerHTML='';
+ if(gTab==='hull'){
+  [['hornet','ХР','Hornet'],['wasp','ВР','Wasp']].forEach(([id,lab,nm])=>{
+   grid.appendChild(garageCard(myType===id,true,0,`<div class="sk">${lab}</div><div class="nm">${nm}</div>`,()=>{myType=id;$('c_hornet').classList.toggle('sel',id==='hornet');$('c_wasp').classList.toggle('sel',id==='wasp');gSel=id;garagePv();pvRefresh()},()=>true))})}
+ else if(gTab==='skn'){if(!gSel||!SKIN_NM[gSel])gSel=mySkn;
+  SKN.forEach(k=>{
+   const pick=()=>{gSel=k;if(ownsSkn(k)){mySkn=k;$('sk_lg').classList.toggle('sel',k=='lg');$('sk_xt').classList.toggle('sel',k=='xt');$('sk_20').classList.toggle('sel',k=='20');garagePv();pvRefresh()}else garageInfo()};
+   const buy=()=>{if(!shopBuy('sk:'+k,SKIN_PRICE[k]))return false;mySkn=k;$('sk_lg').classList.toggle('sel',k=='lg');$('sk_xt').classList.toggle('sel',k=='xt');$('sk_20').classList.toggle('sel',k=='20');garagePv();pvRefresh();return true};
+   grid.appendChild(garageCard(mySkn===k,ownsSkn(k),SKIN_PRICE[k],`<div class="sk">${SKIN_NM[k]}</div><div class="nm">${SKIN_INFO[k].nm}</div>`+(SKIN_PRICE[k]?`<div class="pr">💎 ${SKIN_PRICE[k]}</div>`:''),pick,buy))})}
+ else{if(gSel===null)gSel=myPaint;
+  ['',...PAINTS].forEach(pt=>{
+   const pick=()=>{gSel=pt;if(ownsPaint(pt)){myPaint=pt;showPaint();garagePv()}else garageInfo()};
+   const buy=()=>{if(!shopBuy('pt:'+pt,paintPrice(pt)))return false;myPaint=pt;showPaint();garagePv();return true};
+   grid.appendChild(garageCard(myPaint===pt&&ownsPaint(pt),ownsPaint(pt),paintPrice(pt),`<img src="models/paints/i${pt?pt.slice(1):'_base'}.webp?v=4"><div class="nm">${pt||'база'}</div>`+(paintPrice(pt)?`<div class="pr">💎 ${paintPrice(pt)}</div>`:''),pick,buy))})}
+ garageInfo();garagePv()}
+function openShop(){gOn=true;gLast=performance.now();$('sherr').textContent='';$('shopm').style.display='flex';garageRender();requestAnimationFrame(garageLoop)}
+function closeShop(){gOn=false;$('shopm').style.display='none';if(gT&&gS){gS.remove(gT);gT=null}}
 // flow
 const PL=['',...PAINTS];['i_base',...PAINTS.map(p=>'i'+p.slice(1))].forEach(n=>{new Image().src='models/paints/'+n+'.webp?v=4'});function showPaint(){if(ownsPaint(myPaint))lastOwnedPaint=myPaint;pvRefresh()}
-$('crb').onclick=openShop;$('shx').onclick=()=>{$('shopm').style.display='none'};
+$('crb').onclick=openShop;$('shx').onclick=closeShop;
+['hull','skn','pt'].forEach(t=>$('gtab_'+t).onclick=()=>{gTab=t;gSel=t==='hull'?myType:t==='skn'?mySkn:myPaint;garageRender()});
 showPaint();
 const setSkn=k=>{if(!ownsSkn(k))return openShop();mySkn=k;$('sk_20').classList.toggle('sel',k=='20');$('sk_lg').classList.toggle('sel',k=='lg');$('sk_xt').classList.toggle('sel',k=='xt');pvRefresh()};$('sk_lg').onclick=()=>setSkn('lg');$('sk_xt').onclick=()=>setSkn('xt');$('sk_20').onclick=()=>setSkn('20');crUi();
 const loadWait=()=>loadP;
@@ -597,7 +657,7 @@ function jgSpawn(t){if(t===me){t.x=0;t.z=-JG_A+8;t.a=t.ta=0}
    const d=me&&me.placed?Math.hypot(x-me.x,z-me.z):99;let md=1e9;for(const o of dmT)if(o!==t&&o!==me&&o.placed&&o.hp>0)md=Math.min(md,Math.hypot(o.x-x,o.z-z));
    const sc=(d>=JG_SAFE?100:d)+Math.min(md,20)+Math.random()*10;if(sc>bs){bs=sc;best=[x,z]}}
   if(!best)best=[0,JG_A-8];t.x=best[0];t.z=best[1];t.a=t.ta=me?Math.atan2(me.x-t.x,me.z-t.z):Math.PI}
- t.y=terrH(t.x,t.z);t.placed=true}
+ t.y=rideH(t);t.placed=true}
 function jgKill(v,k){dmClear(v);v.deaths=(v.deaths||0)+1;if(v===me)return jgEnd(false);if(k===me){me.kills++;me.ultK=Math.min(ULT_K,(me.ultK||0)+1);me.ult=me.ultK/ULT_K}v.respT=performance.now()+JG_RESP;v.inv=0;dmHud(true);if(me.kills>=JG_WIN)jgEnd(true)}
 function jgEnd(win){if(over)return;over=true;ultB.style.display='none';if(win)crAdd(CR_JG);$('again').textContent='В меню';$('dmagain').style.display='inline-block';$('dmres').innerHTML='';
  $('mt').textContent=win?'ПОБЕДА! 🏆 '+JG_WIN+' убийств · +'+CR_JG+' 💎':'Тебя уничтожили 💥 Убийств: '+me.kills+' / '+JG_WIN;$('msg').style.display='flex'}
@@ -618,7 +678,7 @@ function ultFire(){if(!(JG&&me&&me.hp>0&&mode=='play'&&!over&&(me.ult||0)>=1))re
  altInitGeo();for(const[gr,cl,op,lf]of[[ULT_R,0x66ccff,.55,.55],[ULT_R*.6,0xffffff,.7,.3]]){const m=new THREE.Mesh(mslGeo.sph,new THREE.MeshBasicMaterial({transparent:true,depthWrite:false}));m.position.set(me.x,(me.y||0)+1,me.z);fxAdd(m,lf,gr,cl,op)}
  shakeT=performance.now();shakeA=.45;dmHud(true);return true}
 function ultStep(dt){if(!JG||!me)return;if(me.healLeft>0&&me.hp>0){const h=Math.min(me.healLeft,me.healRate*dt);me.hp=Math.min(me.max,me.hp+h);me.healLeft-=h}
- for(const t of dmT){if(!t.kbx&&!t.kbz)continue;t.x+=t.kbx*dt;t.z+=t.kbz*dt;const f=Math.exp(-5*dt);t.kbx*=f;t.kbz*=f;if(Math.hypot(t.kbx,t.kbz)<.3)t.kbx=t.kbz=0;resolve(t);t.y=terrH(t.x,t.z)}}
+ for(const t of dmT){if(!t.kbx&&!t.kbz)continue;t.x+=t.kbx*dt;t.z+=t.kbz*dt;const f=Math.exp(-5*dt);t.kbx*=f;t.kbz*=f;if(Math.hypot(t.kbx,t.kbz)<.3)t.kbx=t.kbz=0;resolve(t);t.y=rideH(t)}}
 function startJG(){if(busy)return;busy=true;$('info').textContent='Загрузка…';loadWait().then(()=>{busy=false;beginJG()})}
 function startDM(){if(busy)return;busy=true;$('info').textContent='Загрузка…';loadWait().then(()=>{busy=false;beginDM()})}
 // ---- bonus drops ----
@@ -689,7 +749,8 @@ function loop(now){requestAnimationFrame(loop);const dt=Math.min(.05,(now-prev)/
   {const rc=hitRec(t,nw);if(rc>0){const ax=-t.hitDx,az=-t.hitDz,km=1/Math.sqrt(massOf(t));ox-=ax*.3*rc*km;oz-=az*.3*rc*km;tl+=rc;ux+=ax*rc;uz+=az*rc}}
   {const sk=(nw-(t.shkT||-1e9))/450;if(sk>=0&&sk<1){const q=(1-sk)**2;ox+=(Math.random()-.5)*.45*q;oz+=(Math.random()-.5)*.45*q;t.shkQ=q}else t.shkQ=0}
   t.mesh.position.set(t.x+ox,t.y||0,t.z+oz);t.mesh.quaternion.setFromAxisAngle(YAX,t.a);
-  if(JG){const e=1.2,gx=(terrH(t.x+e,t.z)-terrH(t.x-e,t.z))/(2*e),gz=(terrH(t.x,t.z+e)-terrH(t.x,t.z-e))/(2*e);if(gx||gz){TQ.setFromUnitVectors(YAX,TAX.set(-gx,1,-gz).normalize());t.mesh.quaternion.premultiply(TQ)}}if(t.shkQ){TQ.setFromEuler(EU.set((Math.random()-.5)*.28*t.shkQ,0,(Math.random()-.5)*.28*t.shkQ));t.mesh.quaternion.multiply(TQ)}
+  if(JG){const e=1.2,gx=(terrH(t.x+e,t.z)-terrH(t.x-e,t.z))/(2*e),gz=(terrH(t.x,t.z+e)-terrH(t.x,t.z-e))/(2*e);if(gx||gz){TQ.setFromUnitVectors(YAX,TAX.set(-gx,1,-gz).normalize());t.mesh.quaternion.premultiply(TQ)}
+  t.mesh.updateMatrixWorld(true);_bb.makeEmpty();t.mesh.traverse(o=>{if(o.isMesh&&o.geometry)_bb.expandByObject(o)});if(!_bb.isEmpty())t.mesh.position.y+=(t.y||0)-_bb.min.y+.06}if(t.shkQ){TQ.setFromEuler(EU.set((Math.random()-.5)*.28*t.shkQ,0,(Math.random()-.5)*.28*t.shkQ));t.mesh.quaternion.multiply(TQ)}
   if(tl>0){const L=Math.hypot(ux,uz)||1,ax=ux/L,az=uz/L,ang=Math.min(tl,1.8)*.15;/* model forward=+Z; Rx(-ang) lifts +Z; axis = right of aim dir (cos,0,-sin)*/ TQ.setFromAxisAngle(TAX.set(az,0,-ax),-ang);t.mesh.quaternion.premultiply(TQ)}
   updTrk(t);  t.mesh.tur.rotation.y=t.ta-t.a;t.mesh.visible=t.hp>0}
   for(const t of(DM?dmT:[me,opp])){if(t.inv>now)t.mesh.visible=Math.floor(now/120)%2==0;else if(t.inv){t.inv=0;t.mesh.visible=true}updGlow(t,now);updAura(t,now);updIcons(t,now)}updDrops(now,dt);updBuffs(now);
