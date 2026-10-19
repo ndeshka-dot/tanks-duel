@@ -413,13 +413,27 @@ const pvCv=$('pv'),pvR=new THREE.WebGLRenderer({canvas:pvCv,antialias:true,alpha
 const pvS=new THREE.Scene();pvS.background=new THREE.Color(0x1a2230);pvS.add(new THREE.HemisphereLight(0xffffff,0x445566,1.0));const pvL=new THREE.DirectionalLight(0xfff0d0,1.2);pvL.position.set(4,6,3);pvS.add(pvL);
 const pvC=new THREE.PerspectiveCamera(35,240/130,.1,50);pvC.position.set(0,2.9,7.4);pvC.lookAt(0,.75,0);
 const pvGround=new THREE.Mesh(new THREE.CylinderGeometry(2.6,2.6,.05,32),new THREE.MeshLambertMaterial({color:0x2d3a4a}));pvGround.position.y=-.03;pvS.add(pvGround);
-let pvT=null,pvOn=true,pvK='';
+/* drag-to-rotate preview: mouse / touch drag spins the tank with inertia, wheel / pinch zooms (0.7x..1.6x),
+ slow auto-rotate resumes 2 s after the last touch. Only the canvas itself captures pointers, so buttons and the garage grid keep working. */
+function orbitCtl(cv,auto){const o={yaw:0,vel:auto,zoom:1,auto,idle:0,drag:false,pts:new Map(),pd:0,lx:0};if(!cv)return o;cv.style.touchAction='none';cv.style.cursor='grab';
+ const W=()=>Math.max(80,cv.clientWidth||240);
+ cv.addEventListener('pointerdown',e=>{e.stopPropagation();o.pts.set(e.pointerId,[e.clientX,e.clientY]);try{cv.setPointerCapture(e.pointerId)}catch(_){}o.drag=true;o.lx=e.clientX;o.vel=0;o.lt=performance.now();cv.style.cursor='grabbing';if(o.pts.size==2){const[a,b]=[...o.pts.values()];o.pd=Math.hypot(a[0]-b[0],a[1]-b[1])}});
+ cv.addEventListener('pointermove',e=>{if(!o.pts.has(e.pointerId))return;e.stopPropagation();o.pts.set(e.pointerId,[e.clientX,e.clientY]);
+  if(o.pts.size>=2){const[a,b]=[...o.pts.values()],d=Math.hypot(a[0]-b[0],a[1]-b[1]);if(o.pd>0)o.zoom=Math.max(.7,Math.min(1.6,o.zoom*o.pd/d));o.pd=d;return}
+  const now=performance.now(),dx=e.clientX-o.lx,da=dx/W()*Math.PI*1.6;o.lx=e.clientX;o.yaw+=da;const dtm=Math.max(8,now-o.lt)/1000;o.vel=o.vel*.5+.5*(da/dtm);o.lt=now;o.idle=0});
+ const up=e=>{if(!o.pts.has(e.pointerId))return;o.pts.delete(e.pointerId);if(o.pts.size<2)o.pd=0;if(!o.pts.size){o.drag=false;cv.style.cursor='grab';if(performance.now()-o.lt>90)o.vel=0}else{const[q]=[...o.pts.values()];o.lx=q[0]}};
+ ['pointerup','pointercancel','lostpointercapture'].forEach(n=>cv.addEventListener(n,up));
+ cv.addEventListener('wheel',e=>{e.preventDefault();o.zoom=Math.max(.7,Math.min(1.6,o.zoom*Math.exp(e.deltaY*.0012)));o.idle=0},{passive:false});
+ cv.addEventListener('contextmenu',e=>e.preventDefault());return o}
+function orbitStep(o,dt){if(!o.drag){o.idle+=dt;o.yaw+=o.vel*dt;o.vel*=Math.exp(-3*dt);if(Math.abs(o.vel)<o.auto&&o.idle>2)o.vel+=(o.auto-o.vel)*Math.min(1,dt*1.5)}}
+function orbitCam(c,o,base,tgt){c.position.copy(base).sub(tgt).multiplyScalar(o.zoom).add(tgt);c.lookAt(tgt)}
+let pvT=null,pvOn=true,pvK='';const pvO=orbitCtl($('pv'),.6),pvBase=pvC.position.clone(),pvTg=new THREE.Vector3(0,.75,0);
 function pvRefresh(){const k=eT()+'/'+myPaint+'/'+mySkn+'/'+SEC.rz+'/'+Object.keys(MODELS).length+Object.keys(IMG).length;if(k==pvK)return;pvK=k;
  if(pvT){pvS.remove(pvT);pvT=null}try{const t=makeTank(eT(),myPaint,mySkn,SEC.rz);if(!t)return;pvT=t;if(t.parent)t.parent.remove(t);pvS.add(pvT);pvT.tur.rotation.y=0}catch(e){console.warn(e)}}
 /* preview refreshes when loadP finishes and shows the menu */
 let pvLast=performance.now();
 function pvLoop(now){if(!pvOn)return;requestAnimationFrame(pvLoop);const dt=Math.min(.05,(now-pvLast)/1000);pvLast=now;
- if(pvT){pvT.rotation.y+=dt*.6;pvT.tur.rotation.y=Math.sin(now/1500)*.35}animTick(now,[pvT]);pvR.render(pvS,pvC)}
+ orbitStep(pvO,dt);orbitCam(pvC,pvO,pvBase,pvTg);if(pvT){pvT.rotation.y=pvO.yaw;pvT.tur.rotation.y=Math.sin(now/1500)*.35}animTick(now,[pvT]);pvR.render(pvS,pvC)}
 requestAnimationFrame(pvLoop);
 function pvStop(){pvOn=false;pvS.remove(pvT);pvR.dispose();pvCv.style.display='none'}
 // state: yaw 0 => facing +z. tank a = hull yaw, ta = turret world yaw
@@ -525,7 +539,7 @@ function drive(t,ix,iy,dt,T){const cl=(v,m)=>Math.max(-m,Math.min(m,v));
 function hitCheck(s,tg){if(s.tg!==undefined)return s.tg===tg;/* remote shot message: model boxes (+15 cm for network lag) along the shot line */const h=hbSect(tg,s.ox,s.oz,s.dx,s.dz,.15);return!!h&&h.pmax>.3&&h.pmin<=s.len}
 function damage(t,d){if(t.inv>performance.now())return;t.hp=Math.max(0,t.hp-d)}
 /* ---- RAZEB ALT ATTACK: laser designator (key E / right-click / phone button) -> after LOCK_T on one target, salvo of MSL_N homing missiles ---- */
-const LOCK_T=3000,ALT_CD=10000,MSL_N=6,MSL_DMG=DMG*2/MSL_N/*total = 2 railgun shots*/,MSL_SPD=27,MSL_TURN=7,MSL_LIFE=5000;
+const LOCK_T=3000,ALT_CD=10000,MSL_N=6,MSL_DMG=DMG*2/MSL_N/*total = 2 railgun shots*/,MSL_SPD=27,MSL_TURN=7,MSL_LIFE=9000,MSL_CLR=1.8;/* missiles keep MSL_CLR above hills/blocks/walls on the way, dive only near the target */
 const LOCK_HOLD=1500;/* laser off the target: lock progress freezes for exactly 1.5 s, then resets */
 const ALT={on:false,tgt:null,t0:0,acc:0,offT:0,lt:0,cd:0,lzT:0,lzSent:0,line:null,oline:null,ring:null,oLz:0};
 const mslL=[],fxL=[],mslGeo={body:null,nose:null,puff:null,sph:null};
@@ -547,13 +561,13 @@ function altUpdate(now){const bt=$('altb'),ok=(SEC.rz||JG)&&mode=='play';altUi.b
  if(ALT.on&&!altOk()){altCancel();return}
  if(ALT.oline&&now-ALT.oLz>500)ALT.oline.visible=false;
  if(!ALT.on)return;
- const[ox,oy,oz,dx,dz]=muzzlePos(me,2),wd=SEC.pen?A*3:wallDist(ox,oz,dx,dz);let tg=null,bp=1e9;
+ const[ox,oy,oz,dx,dz]=muzzlePos(me,2),wd=A*3,vis=SEC.pen?wd:wallDist(ox,oz,dx,dz);let tg=null,bp=1e9;/* the designator locks THROUGH walls, blocks and hills across the whole map */
  for(const t of altTargets(now)){const h=hbSect(t,ox,oz,dx,dz,.6);if(!h||h.pmax<=.5)continue;const p=Math.max(.5,h.pmin);if(p<=wd&&p<bp){bp=p;tg=t}}
  const ldt=Math.max(0,Math.min(100,now-(ALT.lt||now)));ALT.lt=now;
  if(tg){if(tg!==ALT.tgt){ALT.tgt=tg;ALT.acc=0}else if(!ALT.offT)ALT.acc+=ldt;ALT.offT=0}/* same target: continue from the frozen progress */
  else if(ALT.tgt){if(!ALT.offT)ALT.offT=now;else if(now-ALT.offT>=LOCK_HOLD){ALT.tgt=null;ALT.acc=0;ALT.offT=0}}
  const frz=!tg&&ALT.tgt&&ALT.offT?ALT.tgt:null;
- const len=tg?bp:(SEC.pen?wd:terrLen(ox,oz,oy,dx,dz,wd)),ty=tg?1+(tg.y||0):oy,ex=ox+dx*len,ez=oz+dz*len;altSeg(altLine('line',0xff1010),ox,oy,oz,ex,ty,ez,.035+.012*Math.sin(now/40));
+ const len=tg?bp:(SEC.pen?wd:terrLen(ox,oz,oy,dx,dz,vis)),ty=tg?1+(tg.y||0):oy,ex=ox+dx*len,ez=oz+dz*len;altSeg(altLine('line',0xff1010),ox,oy,oz,ex,ty,ez,.035+.012*Math.sin(now/40));
  const pr=(tg||frz)?Math.min(1,ALT.acc/LOCK_T):0,rt=tg||frz;
  const rg=altRing();if(rt){rg.visible=!frz||Math.floor(now/150)%2==0;rg.position.set(rt.x,1.2+(rt.y||0),rt.z);rg.lookAt(cam.position);const sc=2.4-1.3*pr;rg.scale.set(sc,sc,sc);if(!frz)rg.rotation.z=now/300;rg.material.color.setHex(frz?0xff9020:pr>=1?0xffffff:0xff2020)}else rg.visible=false;
  altUi.d.style.display='block';$('lockt').textContent=tg?'ЗАХВАТ '+(pr*LOCK_T/1000).toFixed(1)+' / '+LOCK_T/1000+' с':frz?'ЗАХВАТ ЗАМОРОЖЕН '+(pr*LOCK_T/1000).toFixed(1)+' с · сброс через '+Math.max(0,(LOCK_HOLD-(now-ALT.offT))/1000).toFixed(1)+' с':'ЦЕЛЬ НЕ ЗАХВАЧЕНА';$('lockb').style.width=pr*100+'%';
@@ -576,6 +590,10 @@ function mslStep(now,dt){
   const tx=m.lx+m.off[0]*Math.min(1,m.t*2),ty=1+(tg?tg.y||0:0)+m.off[1],tz=m.lz+m.off[2]*Math.min(1,m.t*2);
   const dx=tx-m.p.x,dy=ty-m.p.y,dz2=tz-m.p.z,d=Math.hypot(dx,dy,dz2)||1e-3,sp=Math.min(MSL_SPD,10+m.t*30),k=m.t<.3?0:Math.min(1,MSL_TURN*(m.t-.3)*dt*3);
   const cur=m.v.length()||1;m.v.multiplyScalar(1-k).addScaledVector(new THREE.Vector3(dx/d,dy/d,dz2/d),cur*k);m.v.setLength(sp);
+  {const hd0=Math.hypot(tx-m.p.x,tz-m.p.z);if(m.t>.15&&hd0>3.5){let ob=-1e9;const vh=Math.hypot(m.v.x,m.v.z)||1;
+    for(const f of[0,.25,.5,.8]){const qx=m.p.x+m.v.x/vh*f*sp*.9+m.v.x*.05,qz=m.p.z+m.v.z/vh*f*sp*.9+m.v.z*.05;if(Math.hypot(tx-qx,tz-qz)<2.5)break;ob=Math.max(ob,terrH(qx,qz));
+     for(const b of boxes)if(Math.abs(qx-b.x)<b.hw+.8&&Math.abs(qz-b.z)<b.hd+.8)ob=Math.max(ob,terrH(b.x,b.z)+b.h)}
+    const need=ob+MSL_CLR-m.p.y;if(need>0){m.v.y=Math.max(m.v.y,need*6+3);m.v.setLength(sp)}}}
   m.p.addScaledVector(m.v,dt);m.g.position.copy(m.p);m.g.lookAt(m.p.x+m.v.x,m.p.y+m.v.y,m.p.z+m.v.z);
   m.pf-=dt;if(m.pf<=0){m.pf=.025;const pm=new THREE.Mesh(mslGeo.puff,new THREE.MeshBasicMaterial({transparent:true,depthWrite:false}));pm.position.copy(m.p).addScaledVector(m.v,-.02);pm.scale.setScalar(.8);fxAdd(pm,.8,2.2,0xdddddd,.55)}
   const hd=Math.hypot(m.lx-m.p.x,m.lz-m.p.z);
@@ -629,17 +647,17 @@ const HULL_INFO={hornet:{nm:'Hornet',txt:'Средний корпус. HP 150, �
 const SKIN_INFO={lg:{nm:'Скин LG',txt:'Стандартный вид танка. Бесплатно.'},xt:{nm:'Скин XT',txt:'Улучшенная модель XT с отдельной башней Flash.'},'20':{nm:'Скин 2.0',txt:'Обновлённая модель 2.0 с анимируемыми гусеницами и башней Rail 2.0.'}};
 function paintInfo(p){const A=ANIMS[p];return p?{nm:'Краска '+(A?A.nm:p.toUpperCase()),txt:A?A.txt+' Гусеницы и металлические детали не красятся.':'Цветная покраска корпуса и башни. Гусеницы остаются металлическими.'}:{nm:'Базовая краска',txt:'Заводской цвет без покраски. Бесплатно.'}}
 /* dedicated garage preview renderer (hangar look) */
-const gCv=$('gcv');let gR=null,gS=null,gC=null,gT=null,gOn=false,gLast=0;
+const gCv=$('gcv');let gR=null,gS=null,gC=null,gT=null,gOn=false,gLast=0;const gO=orbitCtl(gCv,.45);gO.yaw=.6;const gBase=new THREE.Vector3(3.2,2.4,6.2),gTg=new THREE.Vector3(0,.7,0);
 function garageInit(){if(gR||!gCv)return;gR=new THREE.WebGLRenderer({canvas:gCv,antialias:true,alpha:false});gR.setPixelRatio(Math.min(devicePixelRatio,2));gR.setSize(gCv.clientWidth||320,gCv.clientHeight||220,false);
  gS=new THREE.Scene();gS.background=new THREE.Color(0x1a2218);gS.add(new THREE.HemisphereLight(0xe8ffe8,0x223322,1.0));const L=new THREE.DirectionalLight(0xfff0d0,1.15);L.position.set(5,8,4);gS.add(L);
  gC=new THREE.PerspectiveCamera(32, (gCv.clientWidth||320)/(gCv.clientHeight||220),.1,50);gC.position.set(3.2,2.4,6.2);gC.lookAt(0,.7,0);
  const floor=new THREE.Mesh(new THREE.CircleGeometry(3.2,32),new THREE.MeshLambertMaterial({color:0x2a3328}));floor.rotation.x=-Math.PI/2;floor.position.y=-.02;gS.add(floor);
  const ring=new THREE.Mesh(new THREE.RingGeometry(2.6,2.75,48),new THREE.MeshBasicMaterial({color:0x3d8c3d,side:THREE.DoubleSide}));ring.rotation.x=-Math.PI/2;ring.position.y=.01;gS.add(ring)}
 function garagePv(){garageInit();if(!gS)return;if(gT){gS.remove(gT);if(gT.parent)gT.parent.remove(gT);gT=null}
- try{const t=makeTank(eT(),myPaint,mySkn,SEC.rz);if(!t)return;if(t.parent)t.parent.remove(t);gT=t;gS.add(gT);gT.rotation.y=.6}catch(e){console.warn(e)}}
+ try{const t=makeTank(eT(),myPaint,mySkn,SEC.rz);if(!t)return;if(t.parent)t.parent.remove(t);gT=t;gS.add(gT);gT.rotation.y=gO.yaw}catch(e){console.warn(e)}}
 function garageFit(){if(!gR||!gCv)return;const w=gCv.clientWidth|0,h=gCv.clientHeight|0;if(w>8&&h>8&&(w!==gCv._w||h!==gCv._h)){gCv._w=w;gCv._h=h;gR.setSize(w,h,false);gC.aspect=w/h;gC.updateProjectionMatrix()}}
 function garageLoop(now){if(!gOn)return;requestAnimationFrame(garageLoop);garageFit();const dt=Math.min(.05,(now-gLast)/1000);gLast=now;
- if(gT){gT.rotation.y+=dt*.45;if(gT.tur)gT.tur.rotation.y=Math.sin(now/1400)*.25}if(gR&&gS&&gC){animTick(now,[gT]);gR.render(gS,gC)}}
+ orbitStep(gO,dt);if(gC)orbitCam(gC,gO,gBase,gTg);if(gT){gT.rotation.y=gO.yaw;if(gT.tur)gT.tur.rotation.y=Math.sin(now/1400)*.25}if(gR&&gS&&gC){animTick(now,[gT]);gR.render(gS,gC)}}
 function garageInfo(){const box=$('ginf');if(!box)return;let title='',body='',price=0,owned=true,action='';
  if(gTab==='hull'){const h=HULL_INFO[myType]||HULL_INFO.hornet;title=h.nm;body=h.txt;owned=true;action='Выбрано'}
  else if(gTab==='skn'){const k=gSel||mySkn,inf=SKIN_INFO[k];title=inf.nm;body=inf.txt;price=SKIN_PRICE[k];owned=ownsSkn(k);action=mySkn===k?'Выбрано':owned?'Выбрать':'Купить'}
