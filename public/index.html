@@ -44,6 +44,15 @@ button{font-size:20px;padding:12px 28px;border-radius:10px;border:0;background:#
 .tg{display:flex;justify-content:space-between;align-items:center;gap:14px;margin:8px 0;font-size:16px}
 .tg button{margin:0;min-width:56px;background:#555;color:#fff}.tg button.on{background:#ffb300;color:#000}
 #secerr{color:#f55;font-size:13px;min-height:16px}
+#shopm{position:fixed;inset:0;z-index:40;background:rgba(0,0,0,.8);display:none;align-items:center;justify-content:center}
+#shopm .bx{background:#1c1c1c;border:2px solid #ffb300;border-radius:12px;padding:10px 14px;max-width:94vw;max-height:94dvh;overflow-y:auto;box-sizing:border-box;text-align:center}
+#shopm h3{margin:0 0 4px;font-size:18px}.shgrid{display:flex;flex-wrap:wrap;justify-content:center;gap:6px;margin:4px 0 8px}
+.shi{display:flex;flex-direction:column;align-items:center;padding:6px;border:2px solid #555;border-radius:10px;background:#222;width:88px;font-size:13px;box-sizing:border-box}.shi.sel{border-color:#ffb300;background:#332a00}
+.shi img{width:76px;height:48px;object-fit:contain}.shi .sk{font-size:20px;font-weight:bold;height:48px;line-height:48px}
+.shi button{margin:4px 0 0;padding:4px 8px;font-size:13px;width:100%}.shi button.no{background:#555;color:#ccc}.shi button.eq{background:#2e7d32;color:#fff}
+#crb{margin:4px 0 2px;padding:6px 14px;font-size:15px;background:#1e88e5;color:#fff}#sherr{color:#f55;font-size:13px;min-height:16px}
+#pview{position:relative}#pview .lock{position:absolute;inset:auto 0 0 0;background:#000b;color:#ffb300;font-size:13px;padding:2px 0}
+#pbuy{display:none;margin:2px 0 4px;padding:5px 12px;font-size:14px}
 @media (orientation:landscape) and (max-height:560px){
  #menu{flex-direction:row;gap:3vw;padding-top:6px;padding-bottom:6px;overflow-y:auto;height:100dvh;bottom:auto}
  #mleft{flex:0 0 40vw;max-width:40vw;justify-content:center}
@@ -57,6 +66,8 @@ button{font-size:20px;padding:12px 28px;border-radius:10px;border:0;background:#
  #paintrow button{padding:4px 12px;font-size:16px}
  #pview{width:110px;height:70px}
  #pcnt{margin-bottom:2px!important;font-size:11px!important}
+ #crb{padding:3px 10px;font-size:13px;margin:0 0 2px}
+ #pbuy{padding:3px 10px;font-size:12px;margin:0 0 2px}
  #mainBtns{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;align-items:center}
  #mainBtns button,#mainBtns input{margin:0!important;font-size:14px!important;padding:7px 10px!important}
  #mainBtns input{width:64px}
@@ -69,12 +80,14 @@ button{font-size:20px;padding:12px 28px;border-radius:10px;border:0;background:#
 </style></head><body>
 <button id="fsb" title="Fullscreen" style="display:none">&#9974;</button>
 <div id="secm"><div class="bx"><div id="secp"><h3>Пароль</h3><input id="secpw" type="password" inputmode="numeric" autocomplete="off"><div id="secerr"></div><div><button id="secok">OK</button><button id="secx1" style="background:#555;color:#fff">Отмена</button></div></div>
-<div id="secs" style="display:none"><h3>Секретные настройки</h3><div class="tg"><span>Aim assist</span><button id="tgaim"></button></div><div class="tg"><span>Auto fire</span><button id="tgfire"></button></div><div class="tg"><span>Прострел стен</span><button id="tgpen"></button></div><div class="tg"><span>RAZEB (Terminator)</span><button id="tgrz"></button></div><div class="tg"><span>Джаггернаут (HP ×20)</span><button id="tgjug"></button></div><div style="font-size:12px;opacity:.7;margin:4px 0">Всё действует сразу, кроме Джаггернаута: он включается со следующего боя</div><button id="secx2" style="background:#555;color:#fff">Закрыть</button></div></div></div>
+<div id="secs" style="display:none"><h3>Секретные настройки</h3><div class="tg"><span>Aim assist</span><button id="tgaim"></button></div><div class="tg"><span>Auto fire</span><button id="tgfire"></button></div><div class="tg"><span>Прострел стен</span><button id="tgpen"></button></div><div class="tg"><span>RAZEB (Terminator)</span><button id="tgrz"></button></div><div class="tg"><span>Джаггернаут (HP ×20)</span><button id="tgjug"></button></div><div class="tg"><span>Кристаллы: <b id="secv">0</b> 💎</span><button id="tgcr" class="on">+1000 💎</button></div><div style="font-size:12px;opacity:.7;margin:4px 0">Всё действует сразу, кроме Джаггернаута: он включается со следующего боя</div><button id="secx2" style="background:#555;color:#fff">Закрыть</button></div></div></div>
+<div id="shopm"><div class="bx"><h3>Магазин · 💎 <span id="shcr">0</span></h3><div style="font-size:12px;opacity:.7">За каждую победу в дуэли (с ботом или игроком): +100 💎</div><div class="lbl">Скины</div><div id="shsk" class="shgrid"></div><div class="lbl">Краски</div><div id="shpt" class="shgrid"></div><div id="sherr"></div><button id="shx" style="background:#555;color:#fff;margin-top:4px">Закрыть</button></div></div>
 <div id="menu"><button id="secb" title="Settings">&#9881;</button><div id="mleft"><h2>TANKS 1v1</h2><canvas id="pv" width="480" height="260"></canvas></div><div id="mright">
+<button id="crb">💎 <span id="crv">0</span> · Магазин</button>
 <div class="lbl">Танк (Railgun):</div>
 <div class="skrow" id="tkrow"><div class="card sel" id="c_hornet" title="Hornet Railgun — HP 150, средний"><b>ХР</b></div><div class="card" id="c_wasp" title="Wasp Railgun — HP 100, быстрый"><b>ВР</b></div></div>
 <div class="lbl">Скин:</div><div class="skrow"><button id="sk_lg" class="card sel sk">LG</button><button id="sk_xt" class="card sk">XT</button><button id="sk_20" class="card sk">2.0</button></div>
-<div class="lbl">Краска:</div><div id="paintrow"><button id="pprev">&#9664;</button><div id="pview"></div><button id="pnext">&#9654;</button></div><div id="pcnt" style="font-size:12px;color:#aaa;margin-bottom:6px"></div>
+<div class="lbl">Краска:</div><div id="paintrow"><button id="pprev">&#9664;</button><div id="pview"></div><button id="pnext">&#9654;</button></div><div id="pcnt" style="font-size:12px;color:#aaa;margin-bottom:6px"></div><button id="pbuy"></button>
 <div id="mainBtns"><button id="mk">Создать комнату</button>
 <div id="coderow"><input id="code" maxlength="6" placeholder="КОД" autocapitalize="characters" autocomplete="off"><button id="jn">Войти по коду</button></div>
 <button id="go" style="background:#555;color:#fff;font-size:16px;padding:9px 20px">Играть с ботом</button>
@@ -363,6 +376,25 @@ fb.addEventListener('pointerdown',e=>{e.preventDefault();e.stopPropagation();fir
 ['pointerup','pointercancel','lostpointercapture'].forEach(n=>fb.addEventListener(n,e=>{fireHeld=false;fb.classList.remove('on')}));
 fb.addEventListener('contextmenu',e=>e.preventDefault());fb.addEventListener('touchstart',e=>e.preventDefault(),{passive:false});
 const keys={};addEventListener('keydown',e=>{keys[e.code]=1;if(e.code=='Space')fireReq=true;if(e.code=='KeyE'&&!e.repeat)altStart()});addEventListener('keyup',e=>keys[e.code]=0);
+/* ---- CRYSTALS & SHOP: skin LG and the base paint are free, everything else is bought with crystals; saved in localStorage 'tdshop' ---- */
+const CR_WIN=100/*crystals per duel win (bot or player)*/,CR_GIFT=1000/*settings button*/;
+const SKN=['lg','xt','20'],SKIN_NM={lg:'LG',xt:'XT','20':'2.0'},SKIN_PRICE={lg:0,xt:1500,'20':2500},paintPrice=p=>!p?0:p===ANIM_PAINT?1500:500;
+const SHOP=(()=>{try{const o=JSON.parse(localStorage.getItem('tdshop')||'{}');return{cr:Math.max(0,Math.floor(+o.cr||0)),own:Array.isArray(o.own)?o.own.filter(k=>typeof k=='string'):[]}}catch(_){return{cr:0,own:[]}}})();
+const ownsSkn=k=>!SKIN_PRICE[k]||SHOP.own.includes('sk:'+k),ownsPaint=p=>!paintPrice(p)||SHOP.own.includes('pt:'+p);
+function shopSave(){try{localStorage.setItem('tdshop',JSON.stringify(SHOP))}catch(_){}crUi()}
+function crAdd(n){SHOP.cr=Math.max(0,SHOP.cr+n);shopSave()}
+function shopBuy(key,price){if(SHOP.own.includes(key))return true;if(SHOP.cr<price)return false;SHOP.cr-=price;SHOP.own.push(key);shopSave();return true}
+let lastOwnedPaint='';
+function crUi(){[['crv'],['shcr'],['secv']].forEach(([id])=>{const e=$(id);if(e)e.textContent=SHOP.cr});SKN.forEach(k=>{const b=$('sk_'+k);if(b)b.textContent=(ownsSkn(k)?'':'🔒 ')+SKIN_NM[k]});if($('shopm').style.display=='flex')shopRender()}
+// locked selections are never taken into a battle: fall back to the last owned paint / LG
+function fixLoadout(){if(!ownsPaint(myPaint)){myPaint=lastOwnedPaint;showPaint()}if(!ownsSkn(mySkn))setSkn('lg')}
+function shopItem(sel,owned,price,html,onUse){const d=document.createElement('div');d.className='shi'+(sel?' sel':'');d.innerHTML=html;const b=document.createElement('button');
+ if(sel){b.textContent='Выбрано';b.className='eq'}else if(owned)b.textContent='Выбрать';else{b.textContent='💎 '+price;if(SHOP.cr<price)b.className='no'}
+ b.onclick=()=>{$('sherr').textContent='';if(!owned&&!onUse.buy()){$('sherr').textContent='Не хватает кристаллов: нужно '+price+' 💎';return}onUse.use();shopRender()};d.appendChild(b);return d}
+function shopRender(){$('shcr').textContent=SHOP.cr;const sk=$('shsk'),pt=$('shpt');sk.innerHTML='';pt.innerHTML='';
+ SKN.forEach(k=>sk.appendChild(shopItem(mySkn==k,ownsSkn(k),SKIN_PRICE[k],'<div class="sk">'+SKIN_NM[k]+'</div>',{buy:()=>shopBuy('sk:'+k,SKIN_PRICE[k]),use:()=>setSkn(k)})));
+ ['',...PAINTS].forEach(p=>pt.appendChild(shopItem(myPaint==p&&ownsPaint(p),ownsPaint(p),paintPrice(p),'<img src="models/paints/i'+(p?p.slice(1):'_base')+'.webp?v=4">'+(p?'':'<span>Базовая</span>'),{buy:()=>shopBuy('pt:'+p,paintPrice(p)),use:()=>{myPaint=p;showPaint()}})))}
+function openShop(){$('sherr').textContent='';$('shopm').style.display='flex';shopRender()}
 // flow
 const PL=['',...PAINTS];['i_base',...PAINTS.map(p=>'i'+p.slice(1))].forEach(n=>{new Image().src='models/paints/'+n+'.webp?v=4'});let pvAnim=0;function pvAnimStop(){if(pvAnim){clearInterval(pvAnim);pvAnim=0}}
 function pvAnimStart(v){const cv=document.createElement('canvas');cv.width=166;cv.height=106;cv.style.cssText='width:100%;height:100%';v.innerHTML='';v.appendChild(cv);const c=cv.getContext('2d');
@@ -370,11 +402,14 @@ function pvAnimStart(v){const cv=document.createElement('canvas');cv.width=166;c
  const draw=()=>{plasmaDraw(performance.now()/1000);c.clearRect(0,0,166,106);c.save();c.beginPath();c.rect(12,10,142,86);c.clip();for(let y=0;y<106;y+=PL_N)for(let x=0;x<166;x+=PL_N)c.drawImage(plCv,x,y);c.restore();
   fr.forEach(([x,y])=>{const g=c.createRadialGradient(x-2,y-2,1,x,y,6);g.addColorStop(0,'#c0c0c6');g.addColorStop(1,'#78787d');c.fillStyle=g;c.beginPath();c.arc(x,y,6,0,7);c.fill()})};
  draw();pvAnim=setInterval(()=>{if(mode=='menu')draw()},66)}
-function showPaint(){const k=myPaint,v=$('pview');pvAnimStop();v.innerHTML=k?`<img src="models/paints/i${k.slice(1)}.webp?v=4" style="width:100%;height:100%;object-fit:contain">`:'<img src="models/paints/i_base.webp?v=4" style="width:100%;height:100%;object-fit:contain">';if(k===ANIM_PAINT)pvAnimStart(v);$('pcnt').textContent=(PL.indexOf(k)+1)+' / '+PL.length;pvRefresh()}
+function showPaint(){const k=myPaint,v=$('pview');pvAnimStop();v.innerHTML=k?`<img src="models/paints/i${k.slice(1)}.webp?v=4" style="width:100%;height:100%;object-fit:contain">`:'<img src="models/paints/i_base.webp?v=4" style="width:100%;height:100%;object-fit:contain">';if(k===ANIM_PAINT)pvAnimStart(v);$('pcnt').textContent=(PL.indexOf(k)+1)+' / '+PL.length;
+ const own=ownsPaint(k),pb=$('pbuy');if(own)lastOwnedPaint=k;else v.insertAdjacentHTML('beforeend','<div class="lock">🔒 '+paintPrice(k)+' 💎</div>');pb.style.display=own?'none':'inline-block';pb.textContent='Купить за '+paintPrice(k)+' 💎';pvRefresh()}
+$('pbuy').onclick=()=>{if(shopBuy('pt:'+myPaint,paintPrice(myPaint)))showPaint();else{openShop();$('sherr').textContent='Не хватает кристаллов: нужно '+paintPrice(myPaint)+' 💎'}};
+$('crb').onclick=openShop;$('shx').onclick=()=>{$('shopm').style.display='none'};
 const stepPaint=d=>{myPaint=PL[(PL.indexOf(myPaint)+d+PL.length)%PL.length];showPaint()};$('pprev').onclick=()=>stepPaint(-1);$('pnext').onclick=()=>stepPaint(1);showPaint();
-const setSkn=k=>{mySkn=k;$('sk_20').classList.toggle('sel',k=='20');$('sk_lg').classList.toggle('sel',k=='lg');$('sk_xt').classList.toggle('sel',k=='xt');pvRefresh()};$('sk_lg').onclick=()=>setSkn('lg');$('sk_xt').onclick=()=>setSkn('xt');$('sk_20').onclick=()=>setSkn('20');
+const setSkn=k=>{if(!ownsSkn(k))return openShop();mySkn=k;$('sk_20').classList.toggle('sel',k=='20');$('sk_lg').classList.toggle('sel',k=='lg');$('sk_xt').classList.toggle('sel',k=='xt');pvRefresh()};$('sk_lg').onclick=()=>setSkn('lg');$('sk_xt').onclick=()=>setSkn('xt');$('sk_20').onclick=()=>setSkn('20');crUi();
 const loadWait=()=>Promise.race([loadP,new Promise(r=>setTimeout(r,6000))]);
-function begin(i,oppType,isBot,oppPaint,oppSkin,oppRz,oppJug){altReset();DM=false;dmReset();drops.forEach(d=>scene.remove(d.sp));drops=[];nextDropAt=performance.now()+4000;pvStop();if(me){scene.remove(me.mesh);scene.remove(opp.mesh)}over=false;$('msg').style.display='none';idx=i;const sp=spawnPos(i),so=spawnPos(1-i);
+function begin(i,oppType,isBot,oppPaint,oppSkin,oppRz,oppJug){fixLoadout();altReset();DM=false;dmReset();drops.forEach(d=>scene.remove(d.sp));drops=[];nextDropAt=performance.now()+4000;pvStop();if(me){scene.remove(me.mesh);scene.remove(opp.mesh)}over=false;$('msg').style.display='none';idx=i;const sp=spawnPos(i),so=spawnPos(1-i);
  me=mk(eT(),sp[0],sp[1],sp[2],myPaint,mySkn,SEC.rz);opp=mk(oppJug?'jug':oppType,so[0],so[1],so[2],isBot?(Math.random()<.5?'':PAINTS[Math.floor(Math.random()*PAINTS.length)]):(oppPaint||''),isBot?'lg':(oppSkin==='xt'?'xt':oppSkin==='20'?'20':'lg'),!isBot&&oppRz===true);opp.isBot=isBot;me.base=myType;opp.base=oppType;
  mode='play';$('menu').style.display='none';['hud','joy','fire','rl'].forEach(id=>$(id).style.display='block');if(matchMedia('(pointer:fine)').matches)$('hint').style.display='block';
  me.last=performance.now()-RELOAD-800;opp.last=performance.now()-RELOAD-800;me.chargeT=opp.chargeT=0;
@@ -389,7 +424,7 @@ function connect(code,kind,tries=0){if(busy)return;busy=true;$('info').textConte
  loadWait().then(()=>{let started=false,gotErr=false;
   try{ws=new WebSocket((location.protocol=='https:'?'wss://':'ws://')+location.host+'/?room='+code+'&mode='+kind)}catch(e){return showMenu('Нет связи с сервером')}
   const my=ws;
-  my.onopen=()=>{my.send(JSON.stringify({t:'hello',tank:myType,paint:myPaint,skin:mySkn,rz:SEC.rz,jug:SEC.jug}));
+  my.onopen=()=>{fixLoadout();my.send(JSON.stringify({t:'hello',tank:myType,paint:myPaint,skin:mySkn,rz:SEC.rz,jug:SEC.jug}));
    $('mainBtns').style.display='none';$('lobby').style.display='block';$('info').textContent='';
    $('lcode').textContent=code;$('llink').textContent=linkFor(code);$('lst').textContent=kind=='create'?'Ожидание соперника...':'Подключаемся к комнате...';
    $('cp').style.display=$('sh').style.display=kind=='create'?'inline-block':'none';$('llink').style.display=kind=='create'?'block':'none'};
@@ -423,7 +458,7 @@ if(room){$('code').value=room;$('info').textContent='Приглашение в �
 function died(){opp.kills++;if(ws)ws.send(JSON.stringify({t:'died'}));if(opp.isBot){}
  if(opp.kills>=WIN)return end('Поражение 😢');
  const sp=spawnPos(idx);me.x=sp[0];me.z=sp[1];me.a=me.ta=sp[2];me.v=me.w=0;me.chargeT=0;me.hp=me.max;me.last=performance.now()-RELOAD-800;me.buffs={};me.inv=performance.now()+3000;updHud()}
-function respawnOpp(){if(me.kills>=WIN)return end('ПОБЕДА! 🏆');opp.buffs={};opp.inv=performance.now()+3000;if(opp.isBot){const sp=spawnPos(1-idx);opp.x=sp[0];opp.z=sp[1];opp.v=opp.w=0;opp.chargeT=0;opp.hp=opp.max;opp.last=performance.now()-RELOAD-800}updHud()}
+function respawnOpp(){if(me.kills>=WIN){crAdd(CR_WIN);return end('ПОБЕДА! 🏆 +'+CR_WIN+' 💎')}opp.buffs={};opp.inv=performance.now()+3000;if(opp.isBot){const sp=spawnPos(1-idx);opp.x=sp[0];opp.z=sp[1];opp.v=opp.w=0;opp.chargeT=0;opp.hp=opp.max;opp.last=performance.now()-RELOAD-800}updHud()}
 function end(t){over=true;$('mt').textContent=t;$('msg').style.display='flex'}
 const hpT=(id,t)=>{const b=$(id).parentNode;if(t.max>200)b.dataset.t=Math.max(0,Math.ceil(t.hp))+' / '+t.max;else delete b.dataset.t};
 function updHud(){if(DM)return dmHud();$('hp1').style.width=100*Math.max(0,me.hp)/me.max+'%';$('hp2').style.width=100*Math.max(0,opp.hp)/opp.max+'%';hpT('hp1',me);hpT('hp2',opp);
@@ -466,7 +501,7 @@ function dmHud(force){if(!DM||!me)return;$('hp1').style.width=100*Math.max(0,me.
 function dmEnd(w){if(over)return;over=true;const win=w===me;$('again').textContent='В меню';$('dmagain').style.display='inline-block';
  $('dmres').innerHTML=dmRows().map((t,i)=>`<div class="${t===me?'me':''}">${i+1}. ${t===me?'Ты':'Бот '+t.n}<b>${t.kills} / ${t.deaths||0}</b></div>`).join('');
  $('mt').textContent=win?'ПОБЕДА! 🏆':'Победил Бот '+w.n+' 🏆';$('msg').style.display='flex'}
-function beginDM(){altReset();DM=true;dmReset();drops.forEach(d=>scene.remove(d.sp));drops=[];pvStop();if(me){scene.remove(me.mesh);if(opp)scene.remove(opp.mesh)}over=false;$('msg').style.display='none';idx=0;
+function beginDM(){fixLoadout();altReset();DM=true;dmReset();drops.forEach(d=>scene.remove(d.sp));drops=[];pvStop();if(me){scene.remove(me.mesh);if(opp)scene.remove(opp.mesh)}over=false;$('msg').style.display='none';idx=0;
  zoneMeshes.forEach(m=>m.visible=false);
  me=mk(eT(),0,0,0,myPaint,mySkn,SEC.rz);me.base=myType;me.n=0;dmT=[me];
  for(let i=1;i<DM_N;i++){const t=mk(Math.random()<.5?'hornet':'wasp',0,0,0,Math.random()<.4?'':PAINTS[Math.floor(Math.random()*PAINTS.length)],'lg',false);t.isBot=true;t.n=i;t.sg=Math.random()<.5?1:-1;dmT.push(t)}
@@ -576,6 +611,7 @@ g('secb').onclick=openS;g('hgb').onclick=e=>{e.stopPropagation();openS()};g('hgb
 const ok=()=>{if(g('secpw').value===SEC_PASS){try{sessionStorage.setItem('tdun','1')}catch(_){}P.style.display='none';S.style.display=''}else g('secerr').textContent='Неверный пароль'};
 g('secok').onclick=ok;g('secpw').onkeydown=e=>{e.stopPropagation();if(e.key==='Enter')ok()};g('secpw').onkeyup=stop;
 g('tgaim').onclick=()=>{SEC.aim=!SEC.aim;sv()};g('tgfire').onclick=()=>{SEC.fire=!SEC.fire;sv()};g('tgpen').onclick=()=>{SEC.pen=!SEC.pen;sv()};g('tgjug').onclick=()=>{SEC.jug=!SEC.jug;sv();if(mode=='play'&&me)swapJug(me,SEC.jug,true);else pvRefresh()};g('tgrz').onclick=()=>{SEC.rz=!SEC.rz;sv();if(mode=='play'&&me)swapRz(me,SEC.rz,true);else pvRefresh()};
+g('tgcr').onclick=()=>crAdd(CR_GIFT);
 const cl=()=>{m.style.display='none'};g('secx1').onclick=cl;g('secx2').onclick=cl;
 })();
 </script></body></html>
