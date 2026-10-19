@@ -428,15 +428,63 @@ function end(t){over=true;$('mt').textContent=t;$('msg').style.display='flex'}
 const hpT=(id,t)=>{const b=$(id).parentNode;if(t.max>200)b.dataset.t=Math.max(0,Math.ceil(t.hp))+' / '+t.max;else delete b.dataset.t};
 function updHud(){if(DM)return dmHud();$('hp1').style.width=100*Math.max(0,me.hp)/me.max+'%';$('hp2').style.width=100*Math.max(0,opp.hp)/opp.max+'%';hpT('hp1',me);hpT('hp2',opp);
  $('score').textContent=`Ты ${me.kills} : ${opp.kills} ${opp.isBot?'Бот':'Соперник'} (до ${WIN})`}
-function botAI(o,tg,dt,now){const dx=tg.x-o.x,dz=tg.z-o.z,d=Math.hypot(dx,dz)||1e-3,want=Math.atan2(dx,dz),sg=o.sg||1;
- let da=Math.atan2(Math.sin(want-o.ta),Math.cos(want-o.ta));o.ta+=Math.max(-1.5*dt,Math.min(1.5*dt,da));
- let mvx=0,mvz=0;
- if(d>14){mvx=dx/d;mvz=dz/d}else if(d<8){mvx=-dx/d;mvz=-dz/d}else{mvx=dz/d*sg;mvz=-dx/d*sg}
- {const bd=nearestDrop(o);if(bd&&bd.d<22&&bd.d>.5){mvx=(bd.x-o.x)/bd.d;mvz=(bd.z-o.z)/bd.d}}
- const diff=Math.atan2(Math.sin(Math.atan2(mvx,mvz)-o.a),Math.cos(Math.atan2(mvx,mvz)-o.a));
- drive(o,-Math.max(-1,Math.min(1,diff*2.5)),Math.abs(diff)<1.2?.6:0,dt,TANKS[o.type]);
- if(o.chargeT){if(now-o.chargeT>=CHARGE&&o.hp>0){o.last=now;o.ta+=(Math.random()-.5)*.12;if(DM)dmFire(o);else{const s=shoot(o,tg,false);if(tg.hp>0&&hitCheck(s,tg)){hitFx(tg,s.dx,s.dz,o.rz);damage(tg,dmgFor(o,tg));if(tg.hp<=0)died()}}updHud()}}
- else if(now-o.last>RELOAD+800&&Math.abs(da)<.12&&tg.hp>0&&(!DM||wallDist(o.x,o.z,Math.sin(o.ta),Math.cos(o.ta))>=d-R))o.chargeT=now}
+/* ---- BOT AI ---- skill presets, pick with ?bot=easy|normal|hard (default hard). easy ~ old behaviour.
+ turn: turret rad/s · jit: half-width of random aim error (rad) · react: perception delay (s) · dodge: chance to dodge a charged shot aimed at the bot
+ cover: hide behind boxes while reloading · lead: aim at extrapolated position · thr: throttle · cool: extra ms after reload before charging */
+const BOT_LV={easy:{turn:1.5,jit:.06,react:.35,dodge:0,cover:false,lead:false,thr:.6,cool:800,coolR:0,smart:false},
+ normal:{turn:2.1,jit:.045,react:.25,dodge:.4,cover:true,lead:true,thr:.85,cool:400,coolR:400,smart:true},
+ hard:{turn:3.4,jit:.018,react:.13,dodge:.9,cover:true,lead:true,thr:1,cool:120,coolR:250,smart:true}};
+const BOT=BOT_LV[params.get('bot')]||BOT_LV.hard;
+const wrapA=a=>Math.atan2(Math.sin(a),Math.cos(a)),clamp1=v=>Math.max(-1,Math.min(1,v));
+function los(a,b){const dx=b.x-a.x,dz=b.z-a.z,d=Math.hypot(dx,dz)||1e-3;return wallDist(a.x,a.z,dx/d,dz/d)>=d-R}
+// position history of a target -> what the bot "sees" (delayed by BOT.react) extrapolated to now; sudden direction changes fool it
+function botSeen(tg,now){let h=tg._h||(tg._h=[]);const l=h[h.length-1];
+ if(l&&Math.hypot(tg.x-l[1],tg.z-l[2])>6)h.length=0;/* respawn / teleport */
+ if(!h.length||now-h[h.length-1][0]>15){h.push([now,tg.x,tg.z]);while(h.length>2&&now-h[1][0]>700)h.shift()}
+ const at=t=>{if(t<=h[0][0])return[h[0][1],h[0][2]];for(let i=h.length-1;i>0;i--){const a=h[i-1],b=h[i];if(t>=a[0]){if(t>=b[0])return[b[1],b[2]];const k=(t-a[0])/(b[0]-a[0]||1);return[a[1]+(b[1]-a[1])*k,a[2]+(b[2]-a[2])*k]}}return[h[0][1],h[0][2]]};
+ const t1=now-BOT.react*1000,p=at(t1),q=at(t1-120);let vx=(p[0]-q[0])/.12,vz=(p[1]-q[1])/.12;const vs=Math.hypot(vx,vz);if(vs>16){vx*=16/vs;vz*=16/vs}
+ return{x:p[0]+vx*BOT.react,z:p[1]+vz*BOT.react,vx,vz}}
+// a charged shot (player or other bot) is aimed at o -> {dx,dz} of that shot
+function botThreat(o,now){let best=null;for(const t of(DM?dmT:[me])){if(t===o||t.hp<=0||!t.chargeT||(now-t.chargeT)/1000<BOT.react)continue;
+ const[ox,,oz,dx,dz]=muzzlePos(t),p=rayCircle(ox,oz,dx,dz,o.x,o.z,R*2.4);if(p!==null&&p<=wallDist(ox,oz,dx,dz))best={dx,dz,key:t.chargeT};}return best}
+// nearest point behind an obstacle (not arena walls) hidden from tg
+function botCover(o,tg,now){if(o._cvT>now)return o._cv;o._cvT=now+300;let best=null,bs=1e9;
+ for(const b of boxes){if(Math.max(b.hw,b.hd)>=A/2)continue;const ex=b.x-tg.x,ez=b.z-tg.z,e=Math.hypot(ex,ez)||1,off=Math.max(b.hw,b.hd)+R+.8,c={x:b.x+ex/e*off,z:b.z+ez/e*off};resolve(c);
+  if(los(tg,c))continue;const d=Math.hypot(c.x-o.x,c.z-o.z);if(d<18&&d<bs){bs=d;best=c}}return o._cv=best}
+// pick a free direction close to the wanted one (feelers from hull centre and both sides)
+function botSteer(o,ang,need){const sg=o.sg||1;for(const off of[0,.35,-.35,.7,-.7,1.1,-1.1,1.6,-1.6,2.2,-2.2]){const a=ang+off*sg,sx=Math.sin(a),cz=Math.cos(a);let m=1e9;
+  for(const s of[-.8,0,.8])m=Math.min(m,wallDist(o.x+cz*R*s,o.z-sx*R*s,sx,cz));if(m>=need)return a}return ang+Math.PI}
+function botAI(o,tg,dt,now){if(o.sg===undefined)o.sg=Math.random()<.5?1:-1;if(!(o._sgT>now)){o._sgT=now+1800+Math.random()*2500;if(BOT.smart&&Math.random()<.45)o.sg=-o.sg}
+ const S=BOT.lead?botSeen(tg,now):{x:tg.x,z:tg.z,vx:0,vz:0};
+ const rem=o.chargeT?Math.max(0,chgOf(o)-(now-o.chargeT))/1000:chgOf(o)/1000,ax=S.x+S.vx*Math.min(rem,.3),az=S.z+S.vz*Math.min(rem,.3);
+ const dx=tg.x-o.x,dz=tg.z-o.z,d=Math.hypot(dx,dz)||1e-3,want=Math.atan2(ax-o.x,az-o.z);
+ let da=wrapA(want-o.ta);o.ta+=Math.max(-BOT.turn*dt,Math.min(BOT.turn*dt,da));da=wrapA(want-o.ta);
+ const seeT=los(o,tg),ready=now-o.last>relOf(o)+(o._cool===undefined?BOT.cool:o._cool),tgReady=tg.chargeT||now-tg.last>relOf(tg)-400;
+ let mv=null,thr=BOT.thr,rev=BOT.smart;
+ if(!BOT.smart){if(d>14)mv=Math.atan2(dx,dz);else if(d<8)mv=Math.atan2(-dx,-dz);else mv=Math.atan2(dz*o.sg,-dx*o.sg)}
+ else{const lo=o.type=='wasp'?9:12,hi=o.type=='wasp'?16:20;
+  // 1) dodge a charged shot aimed at us: move perpendicular to it, prefer current motion and open space
+  const th=BOT.dodge>0?botThreat(o,now):null;
+  if(th&&(!o._dg||o._dg.key!==th.key))o._dg={key:th.key,go:Math.random()<BOT.dodge,dx:th.dx,dz:th.dz,side:0};
+  if(o._dg&&(!th||th.key!==o._dg.key))o._dg=null;
+  if(o._dg&&o._dg.go){const g=o._dg;if(!g.side){const hx=Math.sin(o.a)*(o.v>=0?1:-1),hz=Math.cos(o.a)*(o.v>=0?1:-1),sc=s=>(g.dz*s*hx-g.dx*s*hz)*2+Math.min(8,wallDist(o.x,o.z,g.dz*s,-g.dx*s))/4+Math.random()*.6;g.side=sc(1)>=sc(-1)?1:-1}
+   mv=Math.atan2(g.dz*g.side,-g.dx*g.side);thr=1}
+  // 2) reloading while the enemy can shoot -> take cover; enemy reloading -> push in
+  else if(BOT.cover&&!ready&&!o.chargeT&&tgReady&&seeT){const c=botCover(o,tg,now);if(c){const cd=Math.hypot(c.x-o.x,c.z-o.z);if(cd>.8)mv=Math.atan2(c.x-o.x,c.z-o.z);else thr=0}}
+  // 3) bonus boxes (repair only if damaged)
+  if(mv===null&&!o._dg){const bd=nearestDrop(o);if(bd&&bd.d<22&&bd.d>.5){const z=ZONES.find(q=>q.x==bd.x&&q.z==bd.z);if(!z||z.t!='repair'||o.hp<o.max)mv=Math.atan2(bd.x-o.x,bd.z-o.z)}}
+  // 4) engage: no line of sight -> flank toward target; else keep optimal range and strafe
+  if(mv===null&&thr>0){if(!seeT)mv=Math.atan2(dx,dz)+o.sg*.5;else if(d>hi)mv=Math.atan2(dx,dz)+o.sg*.6;else if(d<lo)mv=Math.atan2(-dx,-dz)-o.sg*.6;else mv=Math.atan2(dz*o.sg,-dx*o.sg)+(tg.hp<o.hp?.25:-.1)*o.sg}
+  if(mv!==null)mv=botSteer(o,mv,o._dg?2.2:3.2);
+  // unstick: little progress while driving -> back up and turn for a moment
+  if(!(o._skT>now)){if(o._skP&&thr>.5&&Math.hypot(o.x-o._skP[0],o.z-o._skP[1])<.5)o._unst=now+650;o._skP=[o.x,o.z];o._skT=now+500}}
+ if(o._unst>now){drive(o,o.sg,-1,dt,TANKS[o.type])}
+ else if(mv===null||thr<=0)drive(o,0,0,dt,TANKS[o.type]);
+ else{const diff=wrapA(mv-o.a);if(rev&&Math.abs(diff)>2.1){drive(o,clamp1(wrapA(mv+Math.PI-o.a)*2.5),-1,dt,TANKS[o.type])}
+  else drive(o,-clamp1(diff*2.5),Math.abs(diff)<1.2?thr*(BOT.smart?Math.max(.35,Math.cos(diff)):1):(BOT.smart?.15:0),dt,TANKS[o.type])}
+ if(o.chargeT){if(now-o.chargeT>=chgOf(o)&&o.hp>0){o.last=now;o._cool=BOT.cool+Math.random()*BOT.coolR;o.ta+=(Math.random()-.5)*2*BOT.jit;if(DM)dmFire(o);else{const s=shoot(o,tg,false);if(tg.hp>0&&hitCheck(s,tg)){hitFx(tg,s.dx,s.dz,o.rz);damage(tg,dmgFor(o,tg));if(tg.hp<=0)died()}}updHud()}}
+ else{const tol=BOT.smart?Math.max(.03,Math.min(.12,Math.atan(R*.9/d))):.12;
+  if(ready&&Math.abs(da)<tol&&tg.hp>0&&!(BOT.smart&&tg.inv>now)&&(!(DM||BOT.smart)||wallDist(o.x,o.z,Math.sin(o.ta),Math.cos(o.ta))>=Math.hypot(ax-o.x,az-o.z)-R))o.chargeT=now}}
 /* ---- DEATHMATCH (single player): player + 7 bots, free-for-all, kill limit DM_LIM ---- */
 function dmReset(){dmT.forEach(t=>{if(t.mesh)scene.remove(t.mesh)});dmT=[];zoneMeshes.forEach(m=>m.visible=true);$('dmb').style.display='none';$('hp2').parentNode.style.display='';$('dmres').innerHTML='';$('again').textContent='Ещё раз';$('dmagain').style.display='none'}
 function dmSpawn(t){const C=[];for(let i=0;i<16;i++){const a=i/16*Math.PI*2+.2;C.push([Math.sin(a)*23,Math.cos(a)*23])}for(let i=0;i<8;i++){const a=i/8*Math.PI*2+.6;C.push([Math.sin(a)*11,Math.cos(a)*11])}
